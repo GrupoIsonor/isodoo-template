@@ -1,0 +1,26 @@
+[main]
+pg1-path={{ "/var/lib/postgresql/%s/docker" | format(cookiecutter.postgres_version) if cookiecutter.postgres_version | float >= 18 else "/var/lib/postgresql/data" }}
+pg1-port=5432
+pg1-user=postgres
+
+[global]
+process-max={{ cookiecutter.host_num_cpu * 2 }})
+compress-type={{ cookiecutter._pgbackrest_compress_type }}
+compress-level={{ cookiecutter._pgbackrest_compress_level }}
+log-level-console={{ cookiecutter._pgbackrest_log_level_console }}
+log-level-file=off
+log-level-stderr=error
+{% set repos = cookiecutter.backup_pgbackrest_repos | from_json -%}
+{% for item in repos -%}
+repo{{ loop.index }}-cipher-type=aes-256-cbc
+repo{{ loop.index }}-cipher-pass={{ cookiecutter._default_backup_password }}
+    {% for key, value in item.items() -%}
+repo{{ loop.index }}-{{ key }}={{ value }}
+    {% endfor -%}
+{% endfor -%}
+; repo1-path=/var/lib/pgbackrest
+; repo1-retention-full=2
+; repo1-retention-diff=4
+; repo1-retention-archive=2
+; repo1-cipher-type=aes-256-cbc
+; repo1-cipher-pass=super_secure_password

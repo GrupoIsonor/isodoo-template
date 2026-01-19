@@ -1,0 +1,13 @@
+# Security
+**/data/
+**/filestore/
+**/sessions/
+**/env/custom/
+**/.secrets
+
+# Clean
+**/__pycache__/
+**/*.py[cod]
+
+# Logs
+**/*.log

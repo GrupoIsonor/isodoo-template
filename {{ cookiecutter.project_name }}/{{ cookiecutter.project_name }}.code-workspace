@@ -1,0 +1,94 @@
+{
+    "folders": [
+        {
+            "name": "PrivateAddons",
+            "path": "addons/private"
+        },
+        {
+            "name": "GitAddons",
+            "path": "addons/git"
+        },
+        {
+            "name": "isOdoo-{{ cookiecutter.odoo_version }}",
+            "path": "."
+        }
+    ],
+    "settings": {
+        "python.analysis.extraPaths": [
+            "${workspaceFolder:PrivateAddons}",
+            "${workspaceFolder:GitAddons}"
+        ],
+        "python.analysis.autoImportCompletions": true,
+        
+        // --- LINTING AND STYLE ---
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": true,
+        "python.linting.pylintArgs": [
+            "--load-plugins=pylint_odoo"
+        ],
+        "[python]": {
+            "editor.defaultFormatter": "ms-python.black-formatter",
+            "editor.formatOnSave": true,
+            "editor.codeActionsOnSave": {
+                "source.organizeImports": "explicit"
+            }
+        },
+
+        // --- XML / QWEB ---
+        "xml.format.enabled": true,
+        "xml.format.splitAttributes": "splitNewLine",
+        "xml.format.joinCDATALines": false,
+        "xml.format.joinContentLines": false,
+        "[xml]": {
+            "editor.defaultFormatter": "redhat.vscode-xml",
+            "editor.tabSize": 4,
+            "editor.formatOnSave": true
+        },
+
+        // --- UI ---
+        "editor.guides.bracketPairs": true,
+        "editor.bracketPairColorization.enabled": true,
+        "workbench.colorCustomizations": {
+            "titleBar.activeBackground": "#714B67",
+            "titleBar.activeForeground": "#FFFFFF"
+        }
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-python.python",
+            "ms-python.vscode-pylance",
+            "ms-python.black-formatter",
+            "redhat.vscode-xml",
+            "odooide.odoo-snippets",
+            "tobiasmuehl.vscode-odoo",
+            "mechatroner.rainbow-csv",
+            "oderwat.indent-rainbow",
+            "visualstudioexptteam.vscodeintellicode"
+        ]
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Odoo: Attach Debugpy",
+                "type": "debugpy",
+                "request": "attach",
+                "connect": {
+                    "host": "localhost",
+                    "port": 5678
+                },
+                "pathMappings": [
+                    {
+                        "localRoot": "${workspaceFolder:GitAddons}",
+                        "remoteRoot": "/opt/odoo/git"
+                    },
+                    {
+                        "localRoot": "${workspaceFolder:PrivateAddons}",
+                        "remoteRoot": "/var/lib/odoo/private"
+                    }
+                ],
+                "justMyCode": false
+            }
+        ]
+    }
+}

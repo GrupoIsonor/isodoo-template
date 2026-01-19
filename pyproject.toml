@@ -1,0 +1,10 @@
+[project]
+name = "isodoo-template"
+version = "0.1.0"
+description = "Cookiecutter template to deploy isOdoo projects"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "cookiecutter>=2.7.1",
+    "pytest>=9.0.3",
+]

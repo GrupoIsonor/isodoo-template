@@ -1,0 +1,64 @@
+services:
+  squid:
+    extends:
+      file: compose/common.yaml
+      service: squid
+
+  odoo:
+    extends:
+      file: compose/common.yaml
+      service: odoo
+    build:
+      target: isodoo-runtime-private
+    networks:
+      - dbnet
+    env_file: 
+      - compose/env/odoo.env
+      - compose/env/system.env
+    depends_on:
+      - squid
+
+  db:
+    extends:
+      file: compose/common.yaml
+      service: db
+    networks:
+      - dbnet
+    secrets:
+      - backup_password
+    volumes:
+      - ./compose/config/pg_hba.conf.custom:/var/lib/postgresql/data/pg_hba.conf:ro,Z
+{%- if cookiecutter.backup_use_pgbackrest %}
+      - ./compose/config/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro,Z
+{%- endif %}
+{%- if cookiecutter.backup_use_resticprofile %}
+      - ./compose/config/resticprofile.json:/etc/resticprofile/profiles.json:ro,Z
+{%- endif %}
+      - ./compose/config/postgresql.conf:/etc/postgresql/postgresql.conf:ro,Z
+      - filestore:/var/lib/odoo/data
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-weekly.datecron.schedule: "@every 5s"
+      ofelia.job-weekly.datecron.command: "pgbackrest --stanza=odoo --type=full backup >> /var/log/pgbackrest.log 2>&1"
+      ofelia.job-dayly.datecron.schedule: "@every 5s"
+      ofelia.job-dayly.datecron.command: "0 3 * * 1-6 pgbackrest --stanza=odoo backup >> /var/log/pgbackrest.log 2>&1"
+
+
+networks:
+  dbnet:
+    driver: bridge
+
+volumes:
+  filestore:
+  db:
+
+secrets:
+  backup_password:
+    x-podman.relabel: Z
+    file: compose/.secrets/backup_password.txt
+  superuser_database_password:
+    x-podman.relabel: Z
+    file: compose/.secrets/superuser_database_password.txt
+  odoo_database_password:
+    x-podman.relabel: Z
+    file: compose/.secrets/odoo_database_password.txt

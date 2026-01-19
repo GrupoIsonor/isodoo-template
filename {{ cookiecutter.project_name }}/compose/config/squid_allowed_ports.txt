@@ -1,0 +1,4 @@
+# Allowed Ports (one per line)
+{% for item in cookiecutter.get(cookiecutter.project_mode ~ '_squid_allowed_ports', '').split(',') -%}
+{{ item.strip() }}
+{% endfor %}

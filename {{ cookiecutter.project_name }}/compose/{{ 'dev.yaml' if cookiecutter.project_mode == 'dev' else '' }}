@@ -1,0 +1,133 @@
+{% from 'macros/networking.jinja' import get_hostname with context -%}
+{% from 'macros/config.jinja' import get_main_email_account with context -%}
+services:
+  squid:
+    extends:
+      file: compose/common.yaml
+      service: squid
+
+  greenmail:
+    image: greenmail/standalone:latest
+    hostname: {{ get_hostname('greenmail') }}
+    restart: unless-stopped
+    environment:
+      GREENMAIL_OPTS: -Dgreenmail.users={{ cookiecutter.dev_greenmail_users }} -Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled
+
+  db:
+    extends:
+      file: compose/common.yaml
+      service: db
+    networks:
+      - dbnet
+
+  {% set dev_main_email_account = get_main_email_account() | from_json -%}
+  odoo:
+    extends:
+      file: compose/common.yaml
+      service: odoo
+    build:
+      target: isodoo-runtime-private-dev
+      args:
+        PUID: ${UID:-1000}
+        PGID: ${GID:-1000}
+    ports:
+      - '127.0.0.1:{{ cookiecutter.odoo_version | int }}069:8069'
+      - '127.0.0.1:{{ cookiecutter._dev_debugpy_port }}:5678'
+    networks:
+      - dbnet
+      - default
+    env_file: 
+      - compose/env/odoo.env
+      - compose/env/system.env
+    environment:
+      OCONF__options__log_level: debug
+      OCONF__options__log_handler: ":DEBUG"
+      OCONF__options__smtp_server: {{ get_hostname('greenmail') }}
+      OCONF__options__smtp_port: 3025
+      OCONF__options__smtp_user: {{ dev_main_email_account.user }}
+      OCONF__options__smtp_password: {{ dev_main_email_account.password }}
+      OCONF__options__smtp_ssl: False
+      OCONF__options__email_from: {{ dev_main_email_account.full }}
+    depends_on:
+      - squid
+      - greenmail
+    volumes:
+      - gitaggregator:/opt/odoo/git
+    develop:
+      watch:
+        - action: sync
+          path: ./private
+          target: /var/lib/odoo/private
+          initial_sync: true
+          ignore:
+            - "**/__pycache__"
+            - "**/*.pyc"
+            - "**/*.pyo"
+            - "**/*.md"
+            - "**/*.rst"
+            - "**/*.txt"
+            - "**/node_modules"
+        - action: sync
+          path: ./addons/addons.yaml
+          target: /opt/odoo/addons.yaml
+          initial_sync: true
+        - action: sync
+          path: ./addons/repos.yaml
+          target: /opt/odoo/repos.yaml
+          initial_sync: true
+        - action: rebuild
+          path: ./deps
+
+  pgweb:
+    image: sosedoff/pgweb
+    hostname: {{ get_hostname('pgweb') }}
+    restart: unless-stopped
+    networks:
+      - dbnet
+    ports: 
+      - "127.0.0.1:{{ cookiecutter.odoo_version | int }}081:8081" 
+    environment:
+      PGWEB_DATABASE_URL: postgres://{{ cookiecutter.odoo_database_user }}:{{ cookiecutter._default_odoo_database_password }}@{{ get_hostname('db') }}:5432/{{ cookiecutter.odoo_database_name }}?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+
+  roundcube:
+    image: roundcube/roundcubemail:latest
+    hostname: {{ get_hostname('roundcube') }}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:{{ cookiecutter.odoo_version | int }}090:80"
+    environment:
+      ROUNDCUBEMAIL_DEFAULT_HOST: {{ get_hostname('greenmail') }}
+      ROUNDCUBEMAIL_DEFAULT_PORT: 3143
+      ROUNDCUBEMAIL_SMTP_SERVER: {{ get_hostname('greenmail') }}
+      ROUNDCUBEMAIL_SMTP_PORT: 3025
+      ROUNDCUBEMAIL_DB_TYPE: sqlite
+    depends_on:
+      - greenmail
+
+networks:
+  dbnet:
+    driver: bridge
+
+volumes:
+  filestore:
+  db:
+  gitaggregator:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./addons/git
+      o: bind
+
+secrets:
+  backup_password:
+    x-podman.relabel: Z
+    file: compose/.secrets/backup_password.txt
+  superuser_database_password:
+    x-podman.relabel: Z
+    file: compose/.secrets/superuser_database_password.txt
+  odoo_database_password:
+    x-podman.relabel: Z
+    file: compose/.secrets/odoo_database_password.txt

@@ -1,0 +1,16 @@
+# PostgreSQL Client Authentication Configuration File
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+
+# "local" is for sockets Unix
+local   all             all                                     peer
+
+# localhost (IPv4 + IPv6)
+host    all             all             127.0.0.1/32            md5
+host    all             all             ::1/128                 md5
+
+# Allow only Odoo
+host    {{ cookiecutter.odoo_database_name }}             {{ cookiecutter.odoo_database_user }}             odoo-db           md5
+
+# Reject other
+host    all             all             0.0.0.0/0               reject
+host    all             all             ::/0                    reject

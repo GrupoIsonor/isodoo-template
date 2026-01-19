@@ -1,0 +1,33 @@
+{% from '_helpers.jinja' import ruff_pyver_map -%}
+target-version = "{{ ruff_pyver_map[cookiecutter.odoo_version] }}"
+fix = true
+
+[lint]
+extend-select = [
+    "B",    # flake8-bugbear    (common bugs and ugly code)
+    "C90",  # mccabe            (ciclomatic complexity)
+    "E501", # pycodestyle       (line too long, default 88)
+    "I",    # isort             (import order)
+    "UP",   # pyupgrade         (mordernize code)
+]
+extend-safe-fixes = ["UP008"]   # non-typing-imports
+include = ["private/*"]
+exclude = ["setup/*"]
+
+[format]
+include = ["private/*"]
+exclude = ["setup/*"]
+
+[lint.per-file-ignores]
+"private/**/__init__.py" = ["F401", "I001"]  # ignore unused and unsorted imports in __init__.py
+"private/**/__manifest__.py" = ["B018"]  # useless expression
+
+[lint.isort]
+section-order = ["future", "standard-library", "third-party", "odoo", "odoo-addons", "first-party", "local-folder"]
+
+[lint.isort.sections]
+"odoo" = ["odoo"]
+"odoo-addons" = ["odoo.addons"]
+
+[lint.mccabe]
+max-complexity = 16

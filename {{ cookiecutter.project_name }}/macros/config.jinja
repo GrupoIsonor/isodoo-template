@@ -1,0 +1,23 @@
+{% macro get_main_email_account() -%}
+  {% set raw = cookiecutter.get(cookiecutter.project_mode ~ '_greenmail_users') | default('') | trim %}
+  
+  {% if not raw %}
+    {% set full_email = '' %}
+    {% set user = '' %}
+    {% set password = '' %}
+    {% set domain = '' %}
+  {% else %}
+    {% set account = raw.split(',')[0] | trim %}
+    {% set parts = account.split(':', 1) %}
+    
+    {% set user = parts[0] %}
+    {% set rest = parts[1] if parts | length > 1 else '' %}
+    {% set email_parts = rest.split('@', 1) %}
+    
+    {% set password = email_parts[0] %}
+    {% set domain = email_parts[1] if email_parts | length > 1 else '' %}
+    {% set full_email = user ~ '@' ~ domain %}
+  {% endif %}
+
+  {{ {"full": full_email, "user": user, "password": password, "domain": domain} | tojson }}
+{%- endmacro %}
