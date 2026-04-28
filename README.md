@@ -57,7 +57,7 @@ To avoid issues with template updates, its best to always use the "merge feature
 ## Simple Usage
 
 ```sh
-cruft create gh:GrupoIsonor/isodoo-template
+cruft create https://github.com/GrupoIsonor/isodoo-template.git
 ```
 
 Due to security policies, this template does not prompt for passwords. Default values are used. The best way to control these values is through the python API or by forcing the values in the Cookiecutter configuration file.
