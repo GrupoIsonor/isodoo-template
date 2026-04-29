@@ -6,8 +6,6 @@ services:
       additional_contexts:
         deps: ../deps
         addons: ../addons
-        private: ../private
-    hostname: {{ get_hostname('odoo') }}
     secrets:
       - odoo_database_password
     depends_on:
@@ -25,7 +23,6 @@ services:
 {%- set pgdata = "/var/lib/postgresql" if cookiecutter.postgres_version|float >= 18 else "/var/lib/postgresql/data" %}
   db:
     image: ghcr.io/grupoisonor/moouro:{{ cookiecutter.postgres_version }}
-    hostname: {{ get_hostname('db') }}
     env_file: env/postgres.env
     secrets:
       - superuser_database_password
@@ -41,9 +38,3 @@ services:
 
   squid:
     image: ubuntu/squid:latest
-    hostname: {{ get_hostname('squid') }}
-    volumes:
-      - ./config/squid.conf:/etc/squid/squid.conf:ro
-      - ./config/squid_allowed_domains.txt:/etc/squid/allowed_domains.txt:ro
-      - ./config/squid_allowed_ips.txt:/etc/squid/allowed_ips.txt:ro
-      - ./config/squid_allowed_ports.txt:/etc/squid/allowed_ports.txt:ro

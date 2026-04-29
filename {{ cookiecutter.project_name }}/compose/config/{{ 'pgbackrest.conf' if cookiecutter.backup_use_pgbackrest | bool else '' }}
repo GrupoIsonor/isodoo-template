@@ -4,13 +4,13 @@ pg1-port=5432
 pg1-user=postgres
 
 [global]
-process-max={{ cookiecutter.host_num_cpu * 2 }})
+process-max={{ cookiecutter.host_num_cpu | int * 2 }})
 compress-type={{ cookiecutter._pgbackrest_compress_type }}
 compress-level={{ cookiecutter._pgbackrest_compress_level }}
 log-level-console={{ cookiecutter._pgbackrest_log_level_console }}
 log-level-file=off
 log-level-stderr=error
-{% set repos = cookiecutter.backup_pgbackrest_repos | from_json -%}
+{% set repos = (cookiecutter.backup_pgbackrest_repos or "[]") | from_json -%}
 {% for item in repos -%}
 repo{{ loop.index }}-cipher-type=aes-256-cbc
 repo{{ loop.index }}-cipher-pass={{ cookiecutter._default_backup_password }}

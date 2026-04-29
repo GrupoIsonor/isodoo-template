@@ -9,12 +9,13 @@
             "path": "addons/git"
         },
         {
-            "name": "isOdoo-{{ cookiecutter.odoo_version }}",
+            "name": "{{ cookiecutter.project_name }}-{{ cookiecutter.odoo_version }}",
             "path": "."
         }
     ],
     "settings": {
         "python.analysis.extraPaths": [
+            "${workspaceFolder:GitAddons}/odoo",
             "${workspaceFolder:PrivateAddons}",
             "${workspaceFolder:GitAddons}"
         ],
@@ -66,9 +67,52 @@
             "visualstudioexptteam.vscodeintellicode"
         ]
     },
+    "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "start-docker-odoo-debugpy",
+                "type": "shell",
+                "command": "docker compose up -d",
+                "options": {
+                    "env": {
+                        "DEBUGPY_ENABLED": "true"
+                    }
+                },
+                "presentation": {
+                    "reveal": "always",
+                    "panel": "shared"
+                }
+            }
+        ]
+    },
     "launch": {
         "version": "0.2.0",
         "configurations": [
+            {
+                "name": "Odoo: Start with Debugpy and Attach (docker)",
+                "type": "debugpy",
+                "request": "attach",
+                "connect": {
+                    "host": "localhost",
+                    "port": 5678
+                },
+                "pathMappings": [
+                    {
+                        "localRoot": "${workspaceFolder:GitAddons}/odoo",
+                        "remoteRoot": "/opt/odoo/git/odoo"
+                    },
+                    {
+                        "localRoot": "${workspaceFolder:GitAddons}",
+                        "remoteRoot": "/opt/odoo/git"
+                    },
+                    {
+                        "localRoot": "${workspaceFolder:PrivateAddons}",
+                        "remoteRoot": "/var/lib/odoo/private"
+                    }
+                ],
+                "preLaunchTask": "start-docker-odoo-debugpy"
+            },
             {
                 "name": "Odoo: Attach Debugpy",
                 "type": "debugpy",
@@ -78,6 +122,10 @@
                     "port": 5678
                 },
                 "pathMappings": [
+                    {
+                        "localRoot": "${workspaceFolder:GitAddons}/odoo",
+                        "remoteRoot": "/opt/odoo/git/odoo"
+                    },
                     {
                         "localRoot": "${workspaceFolder:GitAddons}",
                         "remoteRoot": "/opt/odoo/git"

@@ -1,0 +1,4 @@
+# Blocked IPs (one per line)
+{% for item in cookiecutter.squid_blocked_ips.split(',') -%}
+{{ item.strip() }}
+{% endfor %}

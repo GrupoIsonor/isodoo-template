@@ -1,19 +1,15 @@
 #!/usr/bin/env python3
+# Copyright Grupo Isonor - Alexandre D. <dev@redneboa.es>
 import os
 import shutil
+import subprocess
 from pathlib import Path
+
 
 NO_PRECOMMIT_ODOO_VERSIONS = ("6.0", "6.1", "7.0", "8.0", "9.0", "10.0")
 
 project_root = Path.cwd()
-project_mode = "{{ cookiecutter.project_mode }}"
 odoo_version = "{{ cookiecutter.odoo_version }}"
-
-### Create compose.yml symlink
-if project_mode == "dev":
-    git_dir = project_root / "addons" / "git"
-    git_dir.mkdir(parents=True, exist_ok=True)
-os.symlink(f'compose/{project_mode}.yaml', 'compose.yml')
 
 ### Move recipes
 recipes_dir = source_dir = project_root / "recipes"
@@ -37,3 +33,6 @@ files_to_remove = [
 for file in files_to_remove:
     os.remove(project_root / file)
 shutil.rmtree(project_root / "macros")
+
+### Set Mode Dev as default
+subprocess.run(["inv", "mode", "dev"], check=True)

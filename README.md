@@ -8,7 +8,7 @@
 <p align="center">
 *** PROJECT UNDER DEVELOPMENT. NOT READY FOR PRODUCTION ***
 
-Cookiecutter template for <a href="https://github.com/GrupoIsonor/isodoo">isOdoo</a>
+[Cookiecutter](https://www.cookiecutter.io/) template for <a href="https://github.com/GrupoIsonor/isodoo">isOdoo</a>
 </p>
 <p align="center">
 -- <a href="https://www.grupoisonor.es/">Grupo Isonor</a> --
@@ -52,7 +52,7 @@ Cookiecutter template for <a href="https://github.com/GrupoIsonor/isodoo">isOdoo
 
 This isn't a scaffolding template; everything you need to set up an instance should be possible using the Cookiecutter configuration file (or by answering the questions manually).
 
-To avoid issues with template updates, its best to always use the "merge feature" provided by "compose": https://docs.docker.com/compose/how-tos/multiple-compose-files/merge/
+**Squid** works with allowed lists in non production environments, and with blocked lists in production.
 
 ## Simple Usage
 
@@ -66,7 +66,6 @@ Default values:
 - Postgres Superuser Password: postgres
 - Odoo Admin Password: odoo
 - Backup Password: super_secret_backup_password
-- Dev Roundcube Password: admin
 
 Cookiecutter keys:
 - Postgres Superuser Password: _default_postgres_superuser_password
@@ -79,7 +78,4 @@ Cookiecutter keys:
 
 The best way to have full control is to fork this project and customize it (Don't forget to share anything you find interesting!)
 
-### Common operating procedure
-
-Just create your YAML responses file for `Cookiecutter` along with the `private` and `deps` add-on folders, plus your `.env` file.
-Then run cruft with the `--config-file` option, and you're all set!
+To avoid issues with template updates, its best to always use the "merge feature" provided by "compose": https://docs.docker.com/compose/how-tos/multiple-compose-files/merge/

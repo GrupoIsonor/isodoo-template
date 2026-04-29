@@ -1,30 +1,36 @@
 {
     "project_name": "my-isodoo-project",
-    "project_mode": ["dev", "prod", "demo", "ci"],
     "project_owner": "Grupo Isonor",
     "project_owner_url": "https://www.grupoisonor.es",
     "project_license": ["AGPL-3", "GPL-2", "GPL-2 or any later version", "GPL-3", "GPL-3 or any later version", "LGPL-3", "Proprietary"],
     "project_repository": "",
-    "project_main_domains": "",
-    "project_redirect_domains": "",
-    "project_rewrite_domains": "",
-    "host_num_cpu": 2,
+    "traefik_project_main_domains": "",
+    "traefik_project_redirect_domains": "",
+    "traefik_project_rewrite_domains": "",
     "odoo_version": "19.0",
     "odoo_database_name": "odoodb",
     "odoo_database_user": "odoo",
     "odoo_config_db_filter": "^{{ cookiecutter.odoo_database_name }}$",
     "odoo_config_proxy_mode": false,
+    "odoo_dependencies_apt": "",
+    "odoo_dependencies_npm": "",
+    "odoo_dependencies_pip": "",
     "postgres_version": "18",
     "postgres_superuser_user": "postgres",
+    "postgres_hba": "[[\"host\", \"{{ cookiecutter.odoo_database_name }}\", \"{{ cookiecutter.odoo_database_user }}\", \"odoo-{{ cookiecutter.project_name }}-{{ cookiecutter.odoo_version | replace('.', '_') }}-prod\", \"md5\"]]",
     "backup_use_pgbackrest": true,
-    "backup_pgbackrest_repos": "[]",
+    "backup_pgbackrest_repos": "",
     "backup_use_resticprofile": true,
-    "backup_restic_repos": "[]",
-    "public_network_name": "publicnet",
-    "dev_squid_allowed_domains": ".github.com,.googleapis.com,.cdnjs.cloudflare.com",
-    "dev_squid_allowed_ips": "",
-    "dev_squid_allowed_ports": "80,443",
-    "dev_greenmail_users": "admin:admin@isodoo.com",
+    "backup_restic_repos": "",
+    "inverse_proxy_network_name": "traefiknet",
+    "squid_allowed_domains": ".google.com,.googleapis.com,.cdnjs.cloudflare.com,.gravatar.com,.github.com",
+    "squid_allowed_ips": "",
+    "squid_allowed_ports": "80,443",
+    "squid_blocked_domains": "",
+    "squid_blocked_ips": "",
+    "squid_blocked_ports": "",
+    "greenmail_users": "admin:admin@isodoo.com,demo:demo@isodoo.com",
+    "host_num_cpu": "{{ [cpu_count() // 2, 2] | max }}",
     "_default_odoo_database_password": "odoo",
     "_default_postgres_superuser_password": "postgres",
     "_default_backup_password": "super_secret_backup_password",
@@ -36,33 +42,21 @@
     "_precommit_prettier_plugin_xml_version": "v3.4.1",
     "_precommit_hooks_rev": "v6.0.0",
     "_precommit_eslint_rev": "v9.39.1",
-    "_dev_debugpy_port": "5678",
+    "_debugpy_port": "5678",
     "_pgbackrest_compress_type": "zst",
     "_pgbackrest_compress_level": "6",
     "_pgbackrest_log_level_console": "info",
     "_squid_debug_options": "ALL,1 28,3 33,2",
 
+    "__use_squid_allow": "{{ cookiecutter.squid_allowed_domains | length > 0 or cookiecutter.squid_allowed_ips | length > 0 or cookiecutter.squid_allowed_ports | length > 0 }}",
+    "__use_squid_block": "{{ cookiecutter.squid_blocked_domains | length > 0 or cookiecutter.squid_blocked_ips | length > 0 or cookiecutter.squid_blocked_ports | length > 0 }}",
+
     "_copy_without_render": [
         ".module-readme.rst.j2"
     ],
 
-    "_extensions": ["jinja2_ansible_filters.AnsibleCoreFiltersExtension"],
-
-    "__prompts__": {
-        "package_name": "Select your package name",
-        "module_name": "Select your module name",
-        "package_name_stylized": "Stylized package name",
-        "short_description": "Short description",
-        "github_username": "GitHub username or organization",
-        "full_name": "Author full name",
-        "email": "Author email",
-        "command_line_interface": "Add CLI",
-        "init_git": "Initialize a git repository",
-        "linting": {
-            "__prompt__": "Which linting tool do you want to use?",
-            "ruff": "Ruff",
-            "flake8": "Flake8",
-            "none": "No linting tool"
-        }
-    }
+    "_extensions": [
+        "local_extensions.CPUExtension",
+        "jinja2_ansible_filters.AnsibleCoreFiltersExtension"
+    ]
 }

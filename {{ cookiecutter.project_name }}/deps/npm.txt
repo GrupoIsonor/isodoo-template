@@ -1,0 +1,3 @@
+{% for item in cookiecutter.odoo_dependencies_npm.split(',') -%}
+{{ item.strip() }}
+{% endfor %}

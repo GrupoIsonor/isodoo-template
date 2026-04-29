@@ -1,9 +1,8 @@
 FROM ghcr.io/grupoisonor/isodoo:{{ cookiecutter.odoo_version }} AS isodoo-runtime
 FROM isodoo-runtime AS isodoo-runtime-private
-COPY --from=private --chown=odoo:odoo / /var/lib/odoo/private
+COPY --from=addons --chown=odoo:odoo /private/ /var/lib/odoo/private
 ENV OCONF__options__addons_path="/var/lib/odoo/private,${OCONF__options__addons_path}"
 
-{% if cookiecutter.project_mode == "dev" %}
 FROM isodoo-runtime-private AS isodoo-runtime-private-dev
 ARG PUID=10000
 ARG PGID=10001
@@ -46,4 +45,3 @@ RUN set -eux; \
     deactivate;
 
 CMD ["/usr/local/bin/start_dev"]
-{% endif %}

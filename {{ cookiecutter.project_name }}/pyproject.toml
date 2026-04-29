@@ -1,5 +1,5 @@
 [project]
-name = "{{ cookiecutter.project_name }}"
+name = "{{ cookiecutter.project_name }} isOdoo"
 version = "1.0.0"
 description = "isOdoo project for {{ cookiecutter.project_name }} by {{ cookiecutter.project_owner }}"
 readme = "README.md"
@@ -7,4 +7,4 @@ requires-python = ">=3.14"
 dependencies = []
 
 [tool.cruft]
-skip = ["compose/.secrets/"]
+skip = ["compose/.secrets/", "addons/"]

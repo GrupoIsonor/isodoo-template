@@ -3,6 +3,7 @@
 ### Addons & Modules
 - `addons/addons.yaml` — List of Odoo modules to install
 - `addons/repos.yaml` — Sources of modules (OCA repos don't need full URL, custom/PR repos do)
+- `private/` — Folder for private/custom Odoo modules
 
 ### Dependencies
 - `deps/apt.txt` — System packages (apt)
@@ -13,15 +14,12 @@
 - `compose/.secrets/` — Secret files used by services
 - `compose/config/` — Configuration files for services
 - `compose/env/` — Environment variables (per environment)
-- `compose/common.yaml` — Common services for all environments
-- `compose/pod.yaml` — Production services
-- `compose/dev.yaml` — Development services
-- `compose/demo.yaml` — Demo services
-- `compose/ci.yaml` — CI services
+- `compose/common.yml` — Common services for all environments
+- `compose/pod.yml` — Production services
+- `compose/dev.yml` — Development services
+- `compose/demo.yml` — Demo services
+- `compose/ci.yml` — CI services
 - `compose/Dockerfile` — Final build stage (isOdoo onbuild image)
-
-### Private Modules
-- `private/` — Folder for private/custom Odoo modules
 
 ---
 

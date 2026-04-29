@@ -1,5 +1,7 @@
-# Copyright Grupo Isonor - Alexandre D.
+#!/usr/bin/env python3
+# Copyright Grupo Isonor - Alexandre D. <dev@redneboa.es>
 from invoke import task, Collection
+from pathlib import Path
 import shutil
 import os
 
@@ -61,8 +63,32 @@ def click_odoo_update(c, database="odoodb"):
 
 
 #-----------------
+# PROJECT TASKS
+#-----------------
+
+@task
+def mode(c, mode):
+    if mode not in ["prod", "demo", "ci", "dev"]:
+        raise ValueError("Mode must be prod/demo/ci/dev")
+    # Check no services running
+    if os.path.exists("compose.yml") and _compose_raw(c, ["ps", "-q"]).strip():
+        raise RuntimeError("Stop services first")
+    project_root = Path(c.cwd)
+    # Symlink
+    target = project_root / "compose" / f"{mode}.yml"
+    link = "compose.yml"
+    if os.path.islink(link) or os.path.exists(link):
+        os.unlink(link)
+    os.symlink(target, link)
+    # Create Mode Dirs
+    if mode == "dev":
+        git_dir = project_root / "addons" / "git"
+        git_dir.mkdir(parents=True, exist_ok=True)
+
+
+#-----------------
 # MAIN
 #-----------------
 
-ns = Collection(git_agreggate, shell, module, click_odoo_update)
+ns = Collection(git_agreggate, shell, module, click_odoo_update, mode)
 ns.configure({"client_type": DEFAULT_CLIENT})

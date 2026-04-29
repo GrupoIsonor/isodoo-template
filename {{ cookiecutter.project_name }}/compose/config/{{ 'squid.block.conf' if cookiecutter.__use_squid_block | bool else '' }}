@@ -1,0 +1,26 @@
+http_port 3128 intercept
+http_port 3129
+
+# --- ACLs ---
+acl blocked_ports   port      "/etc/squid/blocked_ports.txt"
+acl blocked_domains dstdomain "/etc/squid/blocked_domains.txt"
+acl blocked_ips     dst       "/etc/squid/blocked_ips.txt"
+
+# --- HTTP/S ---
+http_access deny blocked_ports
+http_access deny blocked_domains
+http_access deny blocked_ips
+
+# --- Websockets ---
+http_upgrade_request_protocols websocket deny blocked_domains
+http_upgrade_request_protocols websocket deny blocked_ips
+
+# --- Allow everything else ---
+http_access allow all
+
+# --- Miscellaneous ---
+cache deny all
+debug_options {{ cookiecutter._squid_debug_options }}
+via off
+forwarded_for off
+host_verify_strict off

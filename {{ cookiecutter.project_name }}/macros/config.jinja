@@ -1,5 +1,5 @@
 {% macro get_main_email_account() -%}
-  {% set raw = cookiecutter.get(cookiecutter.project_mode ~ '_greenmail_users') | default('') | trim %}
+  {% set raw = cookiecutter.greenmail_users | default('') | trim %}
   
   {% if not raw %}
     {% set full_email = '' %}

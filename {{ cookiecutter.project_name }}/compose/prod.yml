@@ -1,33 +1,53 @@
+{% from 'macros/networking.jinja' import get_hostname with context -%}
 services:
+{%- if cookiecutter.__use_squid_block | bool %}
   squid:
     extends:
-      file: compose/common.yaml
+      file: compose/common.yml
       service: squid
+    hostname: "{{ get_hostname('squid', 'prod') }}"
+    volumes:
+      - ./compose/config/squid.block.conf:/etc/squid/squid.conf:ro
+      - ./compose/config/squid_blocked_domains.txt:/etc/squid/blocked_domains.txt:ro
+      - ./compose/config/squid_blocked_ips.txt:/etc/squid/blocked_ips.txt:ro
+      - ./compose/config/squid_blocked_ports.txt:/etc/squid/blocked_ports.txt:ro
 
+{%- endif %}
   odoo:
     extends:
-      file: compose/common.yaml
+      file: compose/common.yml
       service: odoo
     build:
       target: isodoo-runtime-private
+    hostname: "{{ get_hostname('odoo', 'prod') }}"
     networks:
       - dbnet
     env_file: 
       - compose/env/odoo.env
-      - compose/env/system.env
-    depends_on:
-      - squid
+    environment:
+      OCONF__options__db_host: "{{ get_hostname('db', 'prod') }}"
+      OCONF__options__log_level: warn
+      OCONF__options__log_handler: ":WARNING"
+{%- if cookiecutter.__use_squid_block | bool %}
+      http_proxy: "http://{{ get_hostname('squid', 'prod') }}:3129"
+      https_proxy: "http://{{ get_hostname('squid', 'prod') }}:3129"
+      HTTP_PROXY: "http://{{ get_hostname('squid', 'prod') }}:3129"
+      HTTPS_PROXY: "http://{{ get_hostname('squid', 'prod') }}:3129"
+{%- endif %}
 
   db:
     extends:
-      file: compose/common.yaml
+      file: compose/common.yml
       service: db
+    hostname: "{{ get_hostname('db', 'prod') }}"
     networks:
       - dbnet
     secrets:
       - backup_password
     volumes:
-      - ./compose/config/pg_hba.conf.custom:/var/lib/postgresql/data/pg_hba.conf:ro,Z
+{%- if cookiecutter.postgres_hba | length > 0 %}
+      - ./compose/config/pg_hba.conf:/var/lib/postgresql/data/pg_hba.conf:ro,Z
+{%- endif %}
 {%- if cookiecutter.backup_use_pgbackrest %}
       - ./compose/config/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro,Z
 {%- endif %}

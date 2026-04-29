@@ -8,8 +8,11 @@ local   all             all                                     peer
 host    all             all             127.0.0.1/32            md5
 host    all             all             ::1/128                 md5
 
-# Allow only Odoo
-host    {{ cookiecutter.odoo_database_name }}             {{ cookiecutter.odoo_database_user }}             odoo-db           md5
+# Allowed
+{% set hba = (cookiecutter.postgres_hba or "[]") | from_json -%}
+{% for row in hba -%}
+{{ row|join(' ') }}
+{% endfor %}
 
 # Reject other
 host    all             all             0.0.0.0/0               reject
