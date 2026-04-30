@@ -1,4 +1,0 @@
-# Blocked Ports (one per line)
-{% for item in cookiecutter.squid_blocked_ports.split(',') -%}
-{{ item.strip() }}
-{% endfor %}

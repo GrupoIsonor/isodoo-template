@@ -8,10 +8,10 @@ services:
       service: squid
     hostname: "{{ get_hostname('squid', 'dev') }}"
     volumes:
-      - ./compose/config/squid.allow.conf:/etc/squid/squid.conf:ro
-      - ./compose/config/squid_allowed_domains.txt:/etc/squid/allowed_domains.txt:ro
-      - ./compose/config/squid_allowed_ips.txt:/etc/squid/allowed_ips.txt:ro
-      - ./compose/config/squid_allowed_ports.txt:/etc/squid/allowed_ports.txt:ro
+      - ./compose/config/squid.conf:/etc/squid/squid.conf:ro,Z
+      - ./compose/config/squid_allowed_domains.txt:/etc/squid/allowed_domains.txt:ro,Z
+      - ./compose/config/squid_allowed_ips.txt:/etc/squid/allowed_ips.txt:ro,Z
+      - ./compose/config/squid_allowed_ports.txt:/etc/squid/allowed_ports.txt:ro,Z
       
 {%- endif %}
   greenmail:
@@ -21,6 +21,7 @@ services:
     environment:
       GREENMAIL_OPTS: -Dgreenmail.users={{ cookiecutter.greenmail_users }} -Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled
 
+{%- set pgdata = "/var/lib/postgresql" if cookiecutter.postgres_version|float >= 18 else "/var/lib/postgresql/data" %}
   db:
     extends:
       file: compose/common.yml
@@ -28,6 +29,8 @@ services:
     hostname: "{{ get_hostname('db', 'dev') }}"
     networks:
       - dbnet
+    volumes:
+      - db:{{ pgdata }}
 
   {% set dev_main_email_account = get_main_email_account() | from_json -%}
   odoo:
@@ -73,6 +76,7 @@ services:
 {%- endif %}
       - greenmail
     volumes:
+      - filestore:/var/lib/odoo/filestore
       - gitaggregator:/opt/odoo/git
     develop:
       watch:
@@ -143,9 +147,6 @@ volumes:
       o: bind
 
 secrets:
-  backup_password:
-    x-podman.relabel: Z
-    file: compose/.secrets/backup_password.txt
   superuser_database_password:
     x-podman.relabel: Z
     file: compose/.secrets/superuser_database_password.txt

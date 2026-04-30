@@ -11,8 +11,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - filestore:/var/lib/odoo/filestore
     healthcheck:
       test: ["CMD-SHELL", "curl -fs http://localhost:8069/web/login || exit 1"]
       interval: 15s
@@ -20,15 +18,12 @@ services:
       retries: 6
       start_period: 60s
 
-{%- set pgdata = "/var/lib/postgresql" if cookiecutter.postgres_version|float >= 18 else "/var/lib/postgresql/data" %}
   db:
     image: ghcr.io/grupoisonor/moouro:{{ cookiecutter.postgres_version }}
     env_file: env/postgres.env
     secrets:
       - superuser_database_password
       - odoo_database_password
-    volumes:
-      - db:{{ pgdata }}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_ODOO_USER -d $$POSTGRES_ODOO_DB"]
       interval: 10s

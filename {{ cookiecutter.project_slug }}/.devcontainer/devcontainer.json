@@ -1,0 +1,74 @@
+{
+  "name": "{{ cookiecutter.project_name }} (Odoo {{ cookiecutter.odoo_version }})",
+  "dockerComposeFile": "../compose/dev.yml",
+  "service": "odoo",
+  "workspaceFolder": "/var/lib/odoo/private",
+
+  "shutdownAction": "stopCompose",
+  "remoteUser": "odoo",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy",
+        "redhat.vscode-xml",
+        "redhat.vscode-yaml",
+        "charliermarsh.ruff",
+        "tamasfe.even-better-toml",
+        "oderwat.indent-rainbow",
+        "yzhang.markdown-all-in-one",
+        "odooide.odoo-snippets",
+        "tobiasmuehl.vscode-odoo"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/opt/odoo/venv/bin/python",
+        "python.analysis.extraPaths": [
+          "/opt/odoo/git/odoo",
+          "/var/lib/odoo/private",
+          "/opt/odoo/git"
+        ],
+        "python.linting.enabled": true,
+        "python.linting.ruffEnabled": true,
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+          }
+        },
+        "[xml]": {
+          "editor.defaultFormatter": "redhat.vscode-xml",
+          "editor.formatOnSave": true
+        }
+      }
+    }
+  },
+
+  "forwardPorts": [
+    "{{ cookiecutter.odoo_version | int }}069",   // Odoo
+    "{{ cookiecutter.odoo_version | int }}081",   // pgweb
+    "{{ cookiecutter.odoo_version | int }}090",   // roundcube
+    "{{ cookiecutter._debugpy_port | int }}"      // debugpy
+  ],
+
+  "portsAttributes": {
+    "{{ cookiecutter.odoo_version | int }}069": {
+      "label": "Odoo Web",
+      "onAutoForward": "openPreview"
+    },
+    "{{ cookiecutter.odoo_version | int }}081": {
+      "label": "pgWeb"
+    }
+  },
+
+  "postCreateCommand": "echo '✅ Devcontainer isodoo ready for {{ cookiecutter.project_name }} (Odoo {{ cookiecutter.odoo_version }})'",
+  "postStartCommand": "echo 'Container started - use `invoke` or tasks for helpers'"
+
+  // Soporte Podman (solo descomenta si tienes problemas)
+  // "remoteEnv": {
+  //   "DOCKER_HOST": "unix:///run/user/${localEnv:UID}/podman/podman.sock"
+  // }
+}

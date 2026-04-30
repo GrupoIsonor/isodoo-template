@@ -1,0 +1,130 @@
+{
+    "folders": [
+        {
+            "name": "Private Addons",
+            "path": "addons/private"
+        },
+        {
+            "name": "Git Addons",
+            "path": "addons/git"
+        },
+        {
+            "name": "{{ cookiecutter.project_name }} (Odoo {{ cookiecutter.odoo_version }})",
+            "path": "."
+        }
+    ],
+
+    "settings": {
+        "python.defaultInterpreterPath": ".venv/bin/python",
+
+        "python.analysis.autoImportCompletions": true,
+        "python.linting.enabled": true,
+        "python.linting.ruffEnabled": true,
+        "python.linting.pylintEnabled": false,
+
+        "[python]": {
+            "editor.defaultFormatter": "charliermarsh.ruff",
+            "editor.formatOnSave": true,
+            "editor.codeActionsOnSave": {
+                "source.fixAll": "explicit",
+                "source.organizeImports": "explicit"
+            }
+        },
+
+        "[xml]": {
+            "editor.defaultFormatter": "redhat.vscode-xml",
+            "editor.formatOnSave": true,
+            "editor.tabSize": 4
+        },
+
+        "files.watcherExclude": {
+            "**/__pycache__/**": true,
+            "**/filestore/**": true,
+            "**/.git/**": true
+        },
+
+        "odoo.autoRefresh": true
+    },
+
+    "extensions": {
+        "recommendations": [
+            "charliermarsh.ruff",
+            "ms-python.python",
+            "ms-python.vscode-pylance",
+            "redhat.vscode-xml",
+            "redhat.vscode-yaml",
+            "odooide.odoo-snippets",
+            "tobiasmuehl.vscode-odoo",
+            "oderwat.indent-rainbow",
+            "tamasfe.even-better-toml"
+        ]
+    },
+
+    "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "label": "🚀 Start Odoo (Docker)",
+                "type": "shell",
+                "command": "docker compose up -d",
+                "options": {
+                    "cwd": "${workspaceFolder}",
+                    "env": {
+                        "DEBUGPY_ENABLED": "true"
+                    }
+                },
+                "presentation": {
+                    "reveal": "always",
+                    "panel": "shared"
+                }
+            },
+            {
+                "label": "🔄 Restart Odoo",
+                "type": "shell",
+                "command": "docker compose restart odoo",
+                "options": {
+                    "cwd": "${workspaceFolder}"
+                }
+            },
+            {
+                "label": "🛑 Stop Odoo",
+                "type": "shell",
+                "command": "docker compose down",
+                "options": {
+                    "cwd": "${workspaceFolder}"
+                }
+            }
+        ]
+    },
+
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "🐞 Attach to Odoo (debugpy)",
+                "type": "debugpy",
+                "request": "attach",
+                "connect": {
+                    "host": "localhost",
+                    "port": 5678
+                },
+                "pathMappings": [
+                    {
+                        "localRoot": "${workspaceFolder:Git Addons}/odoo",
+                        "remoteRoot": "/opt/odoo/git/odoo"
+                    },
+                    {
+                        "localRoot": "${workspaceFolder:Git Addons}",
+                        "remoteRoot": "/opt/odoo/git"
+                    },
+                    {
+                        "localRoot": "${workspaceFolder:Private Addons}",
+                        "remoteRoot": "/var/lib/odoo/private"
+                    }
+                ],
+                "justMyCode": false,
+                "preLaunchTask": "🚀 Start Odoo (Docker)"
+            }
+        ]
+    }
+}

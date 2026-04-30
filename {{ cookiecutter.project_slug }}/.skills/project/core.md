@@ -7,10 +7,9 @@ This project builds and runs Odoo {{ cookiecutter.odoo_version }} in Docker cont
   https://github.com/GrupoIsonor/isodoo/blob/master/{{ cookiecutter.odoo_version }}.Dockerfile
 
 ### Available Environments
-- **prod**  → Production
-- **dev**   → Development
-- **demo**  → Demo (volatile/ephemeral data)
-- **ci**    → Continuous Integration / Testing
+- **build**  → Build
+- **dev**    → Development
+- **ci**     → Continuous Integration / Testing
 
 ### Task Runner
 Use **Invoke** (`inv`) for common tasks.  

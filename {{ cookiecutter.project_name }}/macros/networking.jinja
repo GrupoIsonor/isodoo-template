@@ -1,3 +1,0 @@
-{% macro get_hostname(service_name, mode) -%}
-    {{- service_name }}-{{ cookiecutter.project_name }}-{{ cookiecutter.odoo_version | replace('.', '_') }}-{{ mode -}}
-{%- endmacro %}

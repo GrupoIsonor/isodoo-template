@@ -1,0 +1,72 @@
+{% from 'macros/networking.jinja' import get_hostname with context -%}
+{% from 'macros/config.jinja' import get_main_email_account with context -%}
+services:
+{%- if cookiecutter.__use_squid_allow | bool %}
+  squid:
+    extends:
+      file: compose/common.yml
+      service: squid
+    hostname: "{{ get_hostname('squid', 'ci') }}"
+    volumes:
+      - ./compose/config/squid.conf:/etc/squid/squid.conf:ro,Z
+      - ./compose/config/squid_allowed_domains.txt:/etc/squid/allowed_domains.txt:ro,Z
+      - ./compose/config/squid_allowed_ips.txt:/etc/squid/allowed_ips.txt:ro,Z
+      - ./compose/config/squid_allowed_ports.txt:/etc/squid/allowed_ports.txt:ro,Z
+      
+{%- endif %}
+  db:
+    extends:
+      file: compose/common.yml
+      service: db
+    hostname: "{{ get_hostname('db', 'ci') }}"
+    networks:
+      - dbnet
+
+  odoo:
+    extends:
+      file: compose/common.yml
+      service: odoo
+    build:
+      target: isodoo-runtime-private
+      args:
+        PUID: ${UID:-1000}
+        PGID: ${GID:-1000}
+    hostname: "{{ get_hostname('odoo', 'ci') }}"
+    ports:
+      - '127.0.0.1:{{ cookiecutter.odoo_version | int }}069:8069'
+    networks:
+      - dbnet
+      - default
+    env_file: 
+      - compose/env/odoo.env
+    environment:
+{%- if cookiecutter.__use_squid_allow | bool %}
+      http_proxy: "http://{{ get_hostname('squid', 'ci') }}:3129"
+      https_proxy: "http://{{ get_hostname('squid', 'ci') }}:3129"
+      no_proxy: "localhost,127.0.0.1,::1,*.local,10.0.0.0/8,192.168.0.0/16"
+      HTTP_PROXY: "http://{{ get_hostname('squid', 'ci') }}:3129"
+      HTTPS_PROXY: "http://{{ get_hostname('squid', 'ci') }}:3129"
+      NO_PROXY: "localhost,127.0.0.1,::1,*.local,10.0.0.0/8,192.168.0.0/16"
+{%- endif %}
+      OCONF__options__log_level: info
+      OCONF__options__log_handler: ":INFO"
+      OCONF__options__db_host: "{{ get_hostname('db', 'ci') }}"
+      OCONF__options__workers: 0
+      OCONF__options__max_cron_threads: 0
+      OCONF__options__test_enable: true
+    depends_on:
+{%- if cookiecutter.__use_squid_allow | bool %}
+      - squid
+{%- endif %}
+
+networks:
+  dbnet:
+    driver: bridge
+
+secrets:
+  superuser_database_password:
+    x-podman.relabel: Z
+    file: compose/.secrets/superuser_database_password.txt
+  odoo_database_password:
+    x-podman.relabel: Z
+    file: compose/.secrets/odoo_database_password.txt

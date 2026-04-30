@@ -15,7 +15,7 @@ def custom_template(tmp_path):
             template=".",
             output_dir=tmpdir,
             no_input=True,
-            extra_context={"project_name": "test-proj"}
+            extra_context={"project_name": "Test Project", "project_slug": "test-proj"}
         )
         project_path = Path(result_dir)
         yield project_path

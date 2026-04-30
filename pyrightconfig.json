@@ -1,0 +1,18 @@
+{
+    "extraPaths": [
+        "addons/git/odoo",
+        "addons/private",
+        "addons/git"
+    ],
+    "typeCheckingMode": "basic",
+    "reportMissingImports": "warning",
+    "reportUnusedImport": "information",
+    "exclude": [
+        "**/__pycache__",
+        "**/filestore",
+        "**/.git",
+        "**/.venv",
+        "**/venv",
+        "node_modules"
+    ]
+}

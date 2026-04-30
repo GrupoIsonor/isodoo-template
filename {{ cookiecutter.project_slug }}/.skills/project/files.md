@@ -15,9 +15,8 @@
 - `compose/config/` — Configuration files for services
 - `compose/env/` — Environment variables (per environment)
 - `compose/common.yml` — Common services for all environments
-- `compose/pod.yml` — Production services
+- `compose/build.yml` — Build definition
 - `compose/dev.yml` — Development services
-- `compose/demo.yml` — Demo services
 - `compose/ci.yml` — CI services
 - `compose/Dockerfile` — Final build stage (isOdoo onbuild image)
 

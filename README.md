@@ -18,9 +18,9 @@
 
 ## Features
 
-- Traefik-Ready
+- Developer and CI environments
+- Predefined tasks for working with the environment and building the production image 
 - AI-Ready (comes with documentation for AI agents)
-- Production, Demo, Developer and CI environments
 - [Squid](https://www.squid-cache.org/) - Traffic filter [all envs]
 - [pgWeb](https://sosedoff.github.io/pgweb/) - PostgreSQL client [dev env]
 - [GreenMail](https://greenmail-mail-test.github.io/greenmail) - Sand-boxed email servers [dev env]
@@ -50,9 +50,7 @@
 
 ## Basic Documentation
 
-This isn't a scaffolding template; everything you need to set up an instance should be possible using the Cookiecutter configuration file (or by answering the questions manually).
-
-**Squid** works with allowed lists in non production environments, and with blocked lists in production.
+This project is not intended for use as-is in production. It is intended for development and the creation of images for production.
 
 ## Simple Usage
 
@@ -65,14 +63,10 @@ Due to security policies, this template does not prompt for passwords. Default v
 Default values:
 - Postgres Superuser Password: postgres
 - Odoo Admin Password: odoo
-- Backup Password: super_secret_backup_password
 
 Cookiecutter keys:
 - Postgres Superuser Password: _default_postgres_superuser_password
 - Odoo Admin Password: _default_odoo_database_password
-- Backup Password: _default_backup_password
-
-
 
 ## Advance Usage
 
