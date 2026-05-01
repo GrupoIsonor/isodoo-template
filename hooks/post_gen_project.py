@@ -34,5 +34,6 @@ for file in files_to_remove:
     os.remove(project_root / file)
 shutil.rmtree(project_root / "macros")
 
-### Set Mode Dev as default
-subprocess.run(["inv", "mode", "dev"], check=True)
+### Prepare Dev Environment
+git_dir = project_root / "addons" / "git"
+git_dir.mkdir(parents=True, exist_ok=True)

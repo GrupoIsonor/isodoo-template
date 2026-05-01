@@ -4,14 +4,14 @@ services:
 {%- if cookiecutter.__use_squid_allow | bool %}
   squid:
     extends:
-      file: compose/common.yml
+      file: common.yml
       service: squid
     hostname: "{{ get_hostname('squid', 'dev') }}"
     volumes:
-      - ./compose/config/squid.conf:/etc/squid/squid.conf:ro,Z
-      - ./compose/config/squid_allowed_domains.txt:/etc/squid/allowed_domains.txt:ro,Z
-      - ./compose/config/squid_allowed_ips.txt:/etc/squid/allowed_ips.txt:ro,Z
-      - ./compose/config/squid_allowed_ports.txt:/etc/squid/allowed_ports.txt:ro,Z
+      - ./config/squid.conf:/etc/squid/squid.conf:ro,Z
+      - ./config/squid_allowed_domains.txt:/etc/squid/allowed_domains.txt:ro,Z
+      - ./config/squid_allowed_ips.txt:/etc/squid/allowed_ips.txt:ro,Z
+      - ./config/squid_allowed_ports.txt:/etc/squid/allowed_ports.txt:ro,Z
       
 {%- endif %}
   greenmail:
@@ -24,7 +24,7 @@ services:
 {%- set pgdata = "/var/lib/postgresql" if cookiecutter.postgres_version|float >= 18 else "/var/lib/postgresql/data" %}
   db:
     extends:
-      file: compose/common.yml
+      file: common.yml
       service: db
     hostname: "{{ get_hostname('db', 'dev') }}"
     networks:
@@ -35,7 +35,7 @@ services:
   {% set dev_main_email_account = get_main_email_account() | from_json -%}
   odoo:
     extends:
-      file: compose/common.yml
+      file: common.yml
       service: odoo
     build:
       target: isodoo-runtime-private-dev
@@ -50,7 +50,7 @@ services:
       - dbnet
       - default
     env_file: 
-      - compose/env/odoo.env
+      - env/odoo.env
     environment:
 {%- if cookiecutter.__use_squid_allow | bool %}
       http_proxy: "http://{{ get_hostname('squid', 'dev') }}:3129"
@@ -149,7 +149,7 @@ volumes:
 secrets:
   superuser_database_password:
     x-podman.relabel: Z
-    file: compose/.secrets/superuser_database_password.txt
+    file: .secrets/superuser_database_password.txt
   odoo_database_password:
     x-podman.relabel: Z
-    file: compose/.secrets/odoo_database_password.txt
+    file: .secrets/odoo_database_password.txt

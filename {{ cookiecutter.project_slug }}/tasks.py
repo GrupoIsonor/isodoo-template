@@ -19,6 +19,7 @@ def _get_preferred_client_type():
 
 
 DEFAULT_CLIENT = _get_preferred_client_type()
+DEFAULT_COMPOSE_ENV = "dev"
 
 
 def _run_container_cmd(
@@ -31,7 +32,10 @@ def _run_container_cmd(
 ) -> str:
     """Execute a command using docker or podman."""
     client_type = c.config.get("client_type", DEFAULT_CLIENT)
-    final_cmd = f"{client_type} compose {command}" if compose else f"{client_type} {command}"
+    compose_env = c.config.get("compose_env", DEFAULT_COMPOSE_ENV)
+    if compose_env not in ("dev", "ci"):
+        raise RuntimeError("Invalid compose env. Valid are: dev or ci")
+    final_cmd = f"{client_type} compose -f compose/{compose_env}.yml {command}" if compose else f"{client_type} {command}"
     result = c.run(
         final_cmd,
         in_stream=stdin,
@@ -61,7 +65,7 @@ def _run_compose_service(c, service: str, command: str, extra_opts: str = ""):
 @task(help={
     "database": "Database name (default: odoodb)"
 })
-def git_aggregate(c, database="odoodb"):
+def git_aggregate(c, database: str = "odoodb"):
     """Update git-tracked addons (moouro, etc.) inside the Odoo container."""
     _run_compose_service(c, "odoo", f"isodoo_update_addons -d {database}")
 
@@ -76,7 +80,7 @@ def shell(c):
     "action": "install or upgrade",
     "modules": "Comma-separated list of modules"
 })
-def module(c, action, modules):
+def module(c, action: str, modules: str):
     """Install or upgrade Odoo modules."""
     if action not in ["install", "upgrade"]:
         raise ValueError("Action must be 'install' or 'upgrade'")
@@ -91,7 +95,7 @@ def module(c, action, modules):
 @task(help={
     "database": "Database name (default: odoodb)"
 })
-def click_odoo_update(c, database="odoodb"):
+def click_odoo_update(c, database: str = "odoodb"):
     """Run click-odoo-update on the specified database."""
     _run_compose_service(c, "odoo", f"click-odoo-update -d {database}")
 
@@ -101,7 +105,7 @@ def click_odoo_update(c, database="odoodb"):
     "push": "Push image to registry after successful build (default: False)",
     "no_cache": "Build without using cache (default: False)",
 })
-def build(c, image_tag=None, push=False, no_cache=False):
+def build(c, image_tag: str = None, push: bool = False, no_cache: bool = False):
     """Build the isodoo Docker image."""
     build_cmd = [
         "build",
@@ -123,40 +127,11 @@ def build(c, image_tag=None, push=False, no_cache=False):
         print(f"→ Pushing image {image_tag}...")
         _run_container_cmd(c, f"push {image_tag}")
 
-
-#-----------------
-# PROJECT TASKS
-#-----------------
-
 @task(help={
-    "mode": "ci or dev"
+    "cmd": "The command to launch",
 })
-def mode(c, mode):
-    """Switch project between ci / dev environments (symlink compose file)."""
-    if mode not in ["ci", "dev"]:
-        raise ValueError("Mode must be 'ci' or 'dev'")
-
-    # Check that no services are running
-    if os.path.exists("compose.yml"):
-        ps_result = _run_container_cmd(c, "ps -q", compose=True)
-        if ps_result.strip():
-            raise RuntimeError("Please stop services first (invoke down)")
-
-    project_root = Path(c.cwd)
-
-    # Update symlink
-    target = project_root / "compose" / f"{mode}.yml"
-    link = project_root / "compose.yml"
-
-    if link.is_symlink() or link.exists():
-        link.unlink()
-
-    link.symlink_to(target)
-
-    # Create required directories for dev mode
-    if mode == "dev":
-        git_dir = project_root / "addons" / "git"
-        git_dir.mkdir(parents=True, exist_ok=True)
+def compose(c, cmd: str):
+    _run_container_cmd(c, cmd, compose=True)
 
 
 #-----------------
@@ -169,7 +144,10 @@ ns = Collection(
     module,
     click_odoo_update,
     build,
-    mode,
+    compose,
 )
 
-ns.configure({"client_type": DEFAULT_CLIENT})
+ns.configure({
+    "client_type": DEFAULT_CLIENT,
+    "compose_env": DEFAULT_COMPOSE_ENV,
+})
