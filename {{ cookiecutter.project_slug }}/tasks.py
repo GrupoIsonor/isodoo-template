@@ -2,8 +2,10 @@
 # Copyright Grupo Isonor - Alexandre D. <dev@redneboa.es>
 from invoke import task, Collection
 from pathlib import Path
+from io import StringIO
 import shutil
 import os
+import subprocess
 
 
 #-----------------
@@ -18,8 +20,7 @@ def _get_preferred_client_type():
     raise RuntimeError("podman or docker (with compose plugin) is required")
 
 
-DEFAULT_CLIENT = _get_preferred_client_type()
-DEFAULT_COMPOSE_ENV = "dev"
+DEFAULT_CONTAINER_ENGINE = _get_preferred_client_type()
 
 
 def _run_container_cmd(
@@ -27,19 +28,21 @@ def _run_container_cmd(
     command: str,
     check: bool = False,
     stdin: str = None,
-    pty: bool = True,
+    pty: bool = False,
+    disown: bool = False,
     compose: bool = False,
     env: dict = None,
 ) -> str:
     """Execute a command using docker or podman."""
-    client_type = c.config.get("isodoo_client_type", DEFAULT_CLIENT)
+    client_type = c.config.get("isodoo_container_engine", DEFAULT_CONTAINER_ENGINE)
     final_cmd = f"{client_type} compose {command}" if compose else f"{client_type} {command}"
     result = c.run(
         final_cmd,
-        in_stream=stdin,
+        in_stream=StringIO(stdin) if stdin else None,
         pty=pty,
         warn=not check,
         hide=False,
+        disown=disown,
         env=env,
     )
     # Clean unwanted podman/docker warnings
@@ -51,10 +54,12 @@ def _run_container_cmd(
     return "".join(clean_lines)
 
 
-def _run_compose_service(c, service: str, command: str, extra_opts: str = ""):
-    """Run a one-off command inside a compose service."""
-    cmd = f"run --rm -it -l traefik.enable=false {extra_opts} {service} {command}"
-    return _run_container_cmd(c, cmd, compose=True)
+def _run_compose_service(c, service: str, command: str, tty=False, extra_opts: str = "", stdin: str = None):
+    cmd = ["run", "--rm"]
+    if tty:
+        cmd.append("-it")
+    cmd += [service, command]
+    return _run_container_cmd(c, " ".join(cmd), compose=True, stdin=stdin)
 
 
 #-----------------
@@ -62,24 +67,73 @@ def _run_compose_service(c, service: str, command: str, extra_opts: str = ""):
 #-----------------
 
 @task(help={
-    "database": "Database name (default: odoodb)"
+    "services": "Comma-separated list of services",
 })
-def git_aggregate(c, database: str = "odoodb"):
-    """Update git-tracked addons (moouro, etc.) inside the Odoo container."""
+def up(c, services: str = "", detach: bool = True):
+    # Symlink
+    link = "compose.yml"
+    if not os.path.islink(link) and not os.path.exists(link):
+        print("No compose.yml detected... Fallback to 'dev' mode...")
+        mode(c, "dev")
+    cmd = ["up"]
+    if services:
+        cmd.append(services)
+    if detach:
+        cmd.append("-d")
+    _run_container_cmd(c, " ".join(cmd), compose=True)
+
+@task(help={
+    "services": "Comma-separated list of services",
+    "remove_volumes": "Mark volumes to be removed (data loss!)",
+})
+def down(c, services: str = "", remove_volumes=False):
+    cmd = ["down"]
+    if services:
+        cmd.append(services)
+    if remove_volumes:
+        cmd.append("--volumes")
+    _run_container_cmd(c, " ".join(cmd), compose=True)
+
+@task(help={
+    "services": "Comma-separated list of services",
+})
+def start(c, services: str = ""):
+    cmd = ["start"]
+    if services:
+        cmd.append(services)
+    _run_container_cmd(c, " ".join(cmd), compose=True)
+
+@task(help={
+    "services": "Comma-separated list of services",
+})
+def stop(c, services: str = ""):
+    cmd = ["stop"]
+    if services:
+        cmd.append(services)
+    _run_container_cmd(c, " ".join(cmd), compose=True)
+
+@task(help={
+    "database": "Database name (default: {{ cookiecutter.odoo_db_name }})",
+})
+def git_aggregate(c, database: str = "{{ cookiecutter.odoo_db_name }}"):
     _run_compose_service(c, "odoo", f"isodoo_update_addons -d {database}")
 
 
-@task
-def shell(c):
-    """Open an Odoo shell inside the running container."""
-    _run_compose_service(c, "odoo", "odoo shell")
+@task(help={
+    "interface": "Preferred REPL (ipython|ptpython|bpython|python)",
+    "database": "Database name (default: {{ cookiecutter.odoo_db_name }})",
+})
+def shell(c, interface: str = "ipython", database: str = "{{ cookiecutter.odoo_db_name }}"):
+    client_type = c.config.get("isodoo_container_engine", DEFAULT_CONTAINER_ENGINE)
+    subprocess.call([client_type, "compose", "run", "--rm", "odoo", "odoo", "shell", "-d", database, "--no-http", "--shell-interface", interface])
 
 
 @task(positional=["action", "modules"], help={
     "action": "install or upgrade",
-    "modules": "Comma-separated list of modules"
+    "modules": "Comma-separated list of modules",
+    "database": "Database name (default: {{ cookiecutter.odoo_db_name }})",
 })
-def module(c, action: str, modules: str):
+def module(c, action: str, modules: str, database: str = "{{ cookiecutter.odoo_db_name }}"):
     """Install or upgrade Odoo modules."""
     if action not in ["install", "upgrade"]:
         raise ValueError("Action must be 'install' or 'upgrade'")
@@ -87,15 +141,14 @@ def module(c, action: str, modules: str):
     _run_compose_service(
         c,
         "odoo",
-        f"odoo -d odoodb {option} {modules} --stop-after-init",
+        f"odoo -d {database} --no-http --stop-after-init {option} {modules}",
     )
 
 
 @task(help={
-    "database": "Database name (default: odoodb)"
+    "database": "Database name (default: {{ cookiecutter.odoo_db_name }})",
 })
-def click_odoo_update(c, database: str = "odoodb"):
-    """Run click-odoo-update on the specified database."""
+def click_odoo_update(c, database: str = "{{ cookiecutter.odoo_db_name }}"):
     _run_compose_service(c, "odoo", f"click-odoo-update -d {database}")
 
 
@@ -117,7 +170,7 @@ def build(c, image_tag: str = None, push: bool = False, no_cache: bool = False):
         build_cmd.append("--no-cache")
     if image_tag:
         build_cmd.extend(["-t", image_tag])
-    if c.config.get("isodoo_client_type", DEFAULT_CLIENT) == "podman":
+    if c.config.get("isodoo_container_engine", DEFAULT_CONTAINER_ENGINE) == "podman":
         build_cmd.extend(["--format", "docker"])
     # Context path must be the last argument
     build_cmd.append("compose/")
@@ -131,12 +184,14 @@ def build(c, image_tag: str = None, push: bool = False, no_cache: bool = False):
 # PROJECT TASKS
 #-----------------
 
-@task
-def mode(c, mode):
-    if mode not in ["build", "ci", "dev"]:
-        raise ValueError("Mode must be build/ci/dev")
+@task(help={
+    "mode": "The project mode (dev|ci)",
+})
+def mode(c, mode: str):
+    if mode not in ["ci", "dev"]:
+        raise ValueError("Mode must be dev/ci")
     # Check no services running
-    if os.path.exists("compose.yml") and _run_container_cmd(c, ["ps", "-q"]).strip():
+    if os.path.exists("compose.yml") and _run_container_cmd(c, "ps -q", compose=True, pty=False).strip():
         raise RuntimeError("Stop services first")
     project_root = Path(c.cwd)
     # Symlink
@@ -149,6 +204,7 @@ def mode(c, mode):
     if mode == "dev":
         git_dir = project_root / "addons" / "git"
         git_dir.mkdir(parents=True, exist_ok=True)
+    print(f"Project mode changed to {mode}")
 
 
 #-----------------
@@ -156,6 +212,10 @@ def mode(c, mode):
 #-----------------
 
 ns = Collection(
+    up,
+    down,
+    stop,
+    start,
     git_aggregate,
     shell,
     module,
@@ -165,5 +225,5 @@ ns = Collection(
 )
 
 ns.configure({
-    "isodoo_client_type": DEFAULT_CLIENT,
+    "isodoo_container_engine": DEFAULT_CONTAINER_ENGINE,
 })

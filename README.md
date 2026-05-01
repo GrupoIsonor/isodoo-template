@@ -18,7 +18,7 @@
 
 ## Features
 
-- Developer and CI environments
+- Development and CI environments
 - Predefined tasks (using invoke)
 - Support podman and docker workflows
 - AI-Ready (comes with documentation for AI agents)
@@ -65,11 +65,13 @@ Due to security policies, this template does not prompt for passwords. Default v
 
 Default values:
 - Postgres Superuser Password: postgres
-- Odoo Admin Password: odoo
+- Odoo DB Password: odoo
+- Odoo Admin DB Manager Password: superadmin
 
 Cookiecutter keys:
 - Postgres Superuser Password: _default_postgres_superuser_password
-- Odoo Admin Password: _default_odoo_database_password
+- Odoo DB Password: _default_odoo_db_password
+- Odoo Admin DB Manager Password:: _default_odoo_admin_passwd
 
 ## Advance Usage
 

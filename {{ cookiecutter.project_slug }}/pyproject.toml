@@ -1,5 +1,5 @@
 [project]
-name = "{{ cookiecutter.project_name }} isOdoo"
+name = "isodoo_{{ cookiecutter.project_slug }}"
 version = "1.0.0"
 description = "isOdoo project for {{ cookiecutter.project_name }} by {{ cookiecutter.project_owner }}"
 readme = "README.md"

@@ -10,7 +10,7 @@ services:
       - ./compose/config/squid_allowed_domains.txt:/etc/squid/allowed_domains.txt:ro,Z
       - ./compose/config/squid_allowed_ips.txt:/etc/squid/allowed_ips.txt:ro,Z
       - ./compose/config/squid_allowed_ports.txt:/etc/squid/allowed_ports.txt:ro,Z
-      
+
 {% endif %}
   greenmail:
     image: greenmail/standalone:latest
@@ -51,6 +51,7 @@ services:
         PGID: ${GID:-1000}
     secrets:
       - odoo_database_password
+      - odoo_admin_database_manager_password
     depends_on:
       db:
         condition: service_healthy
@@ -67,7 +68,7 @@ services:
     networks:
       - dbnet
       - default
-    env_file: 
+    env_file:
       - compose/env/odoo.env
     environment:
 {%- if cookiecutter.__use_squid_allow | bool %}
@@ -88,6 +89,7 @@ services:
       OCONF__options__smtp_ssl: False
       OCONF__options__email_from: {{ dev_main_email_account.full }}
       OCONF__options__db_host: "{{ get_hostname('db', 'dev') }}"
+      FOCONF__options__admin_passwd: /run/secrets/odoo_admin_database_manager_password
     volumes:
       - filestore:/var/lib/odoo/filestore
       - gitaggregator:/opt/odoo/git
@@ -128,10 +130,10 @@ services:
     restart: unless-stopped
     networks:
       - dbnet
-    ports: 
-      - "127.0.0.1:{{ cookiecutter.odoo_version | int }}081:8081" 
+    ports:
+      - "127.0.0.1:{{ cookiecutter.odoo_version | int }}081:8081"
     environment:
-      PGWEB_DATABASE_URL: postgres://{{ cookiecutter.odoo_database_user }}:{{ cookiecutter._default_odoo_database_password }}@{{ get_hostname('db', 'dev') }}:5432/{{ cookiecutter.odoo_database_name }}?sslmode=disable
+      PGWEB_DATABASE_URL: postgres://{{ cookiecutter.odoo_db_user }}:{{ cookiecutter._default_odoo_db_password }}@{{ get_hostname('db', 'dev') }}:5432/{{ cookiecutter.odoo_db_name }}?sslmode=disable
     depends_on:
       db:
         condition: service_healthy
@@ -163,13 +165,16 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: ../addons/git
+      device: ./addons/git
       o: bind
 
 secrets:
   superuser_database_password:
     x-podman.relabel: Z
-    file: .secrets/superuser_database_password.txt
+    file: compose/.secrets/superuser_database_password.txt
   odoo_database_password:
     x-podman.relabel: Z
-    file: .secrets/odoo_database_password.txt
+    file: compose/.secrets/odoo_database_password.txt
+  odoo_admin_database_manager_password:
+    x-podman.relabel: Z
+    file: compose/.secrets/odoo_admin_database_manager_password.txt

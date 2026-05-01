@@ -1,15 +1,16 @@
-{%- macro fragment(name, title, sub='=') %}
-{%- if name in fragments %}
+{# j2lint: disable=jinja-statements-indentation #}
+{% macro fragment(name, title, sub='=') %}
+{% if name in fragments %}
 {{- title }}
-{{ sub * title|length }}
+{{ sub * title | length }}
 
 {{ fragments[name] }}
 {% endif %}
-{%- endmacro -%}
+{% endmacro %}
 
-{{ '=' * manifest.name|length }}
+{{ '=' * manifest.name | length }}
 {{ manifest.name }}
-{{ '=' * manifest.name|length }}
+{{ '=' * manifest.name | length }}
 
 ..
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -29,14 +30,14 @@
 |badge_devstat| |badge_license|
 
 {{ fragments.get('DESCRIPTION', '') }}
-{% if development_status == 'alpha' -%}
+{% if development_status == 'alpha' %}
 
 .. IMPORTANT::
    This is an alpha version, the data model and design can change at any time without warning.
    Only for development or testing purpose, do not use in production.
    `More details on development status <https://odoo-community.org/page/development-status>`_
 
-{% endif -%}
+{% endif %}
 
 **Table of contents**
 
@@ -55,14 +56,14 @@ Credits
 {#- HACK Avoid conflicts with pre-commit's check-merge-conflict #}
 {{ "=======" }}
 
-{% if authors -%}
+{% if authors %}
 Authors
 {{ level3_underline * 7 }}
 
-{% for author in authors if author -%}
+{% for author in authors if author %}
 * {{ author }}
 {% endfor %}
-{% endif -%}
+{% endif %}
 
 {{ fragment('CONTRIBUTORS', 'Contributors', sub=level3_underline) }}
 {{- fragment('CREDITS', 'Other credits', sub=level3_underline) -}}

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Cookiecutter template for isOdoo environments (Docker/Podman). Generates complete setups: Build, Dev and CI.
+Cookiecutter template for isOdoo environments (Docker/Podman). Generates complete setups: Dev and CI.
 
 ## Project Structure
 

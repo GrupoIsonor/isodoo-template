@@ -10,8 +10,9 @@ services:
       - ./compose/config/squid_allowed_domains.txt:/etc/squid/allowed_domains.txt:ro,Z
       - ./compose/config/squid_allowed_ips.txt:/etc/squid/allowed_ips.txt:ro,Z
       - ./compose/config/squid_allowed_ports.txt:/etc/squid/allowed_ports.txt:ro,Z
-      
+
 {%- endif %}
+{% set pgdata = "/var/lib/postgresql" if cookiecutter.postgres_version|float >= 18 else "/var/lib/postgresql/data" %}
   db:
     image: ghcr.io/grupoisonor/moouro:{{ cookiecutter.postgres_version }}
     env_file: compose/env/postgres.env
@@ -21,6 +22,8 @@ services:
     hostname: "{{ get_hostname('db', 'ci') }}"
     networks:
       - dbnet
+    volumes:
+      - db:{{ pgdata }}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_ODOO_USER -d $$POSTGRES_ODOO_DB"]
       interval: 10s
@@ -50,7 +53,7 @@ services:
     networks:
       - dbnet
       - default
-    env_file: 
+    env_file:
       - compose/env/odoo.env
     environment:
 {%- if cookiecutter.__use_squid_allow | bool %}
@@ -79,10 +82,13 @@ networks:
   dbnet:
     driver: bridge
 
+volumes:
+  db:
+
 secrets:
   superuser_database_password:
     x-podman.relabel: Z
-    file: .secrets/superuser_database_password.txt
+    file: compose/.secrets/superuser_database_password.txt
   odoo_database_password:
     x-podman.relabel: Z
-    file: .secrets/odoo_database_password.txt
+    file: compose/.secrets/odoo_database_password.txt
