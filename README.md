@@ -51,7 +51,9 @@
 
 ## Basic Documentation
 
-This project is not intended for use as-is in production. It is intended for development and the creation of images for production.
+**This template is not meant for direct production use.**
+
+It serves as a starting point for development teams to build, test, and customize their isOdoo-based applications. It facilitates local development, testing environments, and the creation of optimized container images ready for production deployment.
 
 ## Simple Usage
 
