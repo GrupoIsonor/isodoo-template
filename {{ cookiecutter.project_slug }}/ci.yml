@@ -3,34 +3,47 @@
 services:
 {%- if cookiecutter.__use_squid_allow | bool %}
   squid:
-    extends:
-      file: common.yml
-      service: squid
+    image: ubuntu/squid:latest
     hostname: "{{ get_hostname('squid', 'ci') }}"
     volumes:
-      - ./config/squid.conf:/etc/squid/squid.conf:ro,Z
-      - ./config/squid_allowed_domains.txt:/etc/squid/allowed_domains.txt:ro,Z
-      - ./config/squid_allowed_ips.txt:/etc/squid/allowed_ips.txt:ro,Z
-      - ./config/squid_allowed_ports.txt:/etc/squid/allowed_ports.txt:ro,Z
+      - ./compose/config/squid.conf:/etc/squid/squid.conf:ro,Z
+      - ./compose/config/squid_allowed_domains.txt:/etc/squid/allowed_domains.txt:ro,Z
+      - ./compose/config/squid_allowed_ips.txt:/etc/squid/allowed_ips.txt:ro,Z
+      - ./compose/config/squid_allowed_ports.txt:/etc/squid/allowed_ports.txt:ro,Z
       
 {%- endif %}
   db:
-    extends:
-      file: common.yml
-      service: db
+    image: ghcr.io/grupoisonor/moouro:{{ cookiecutter.postgres_version }}
+    env_file: compose/env/postgres.env
+    secrets:
+      - superuser_database_password
+      - odoo_database_password
     hostname: "{{ get_hostname('db', 'ci') }}"
     networks:
       - dbnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_ODOO_USER -d $$POSTGRES_ODOO_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   odoo:
-    extends:
-      file: compose/common.yml
-      service: odoo
     build:
+      context: ./compose
+      additional_contexts:
+        deps: ./deps
+        addons: ./addons
       target: isodoo-runtime-private
-      args:
-        PUID: ${UID:-1000}
-        PGID: ${GID:-1000}
+    secrets:
+      - odoo_database_password
+    depends_on:
+      db:
+        condition: service_healthy
+{%- if cookiecutter.__use_squid_allow | bool %}
+      squid:
+        condition: service_started
+{%- endif %}
     hostname: "{{ get_hostname('odoo', 'ci') }}"
     ports:
       - '127.0.0.1:{{ cookiecutter.odoo_version | int }}069:8069'
@@ -38,7 +51,7 @@ services:
       - dbnet
       - default
     env_file: 
-      - env/odoo.env
+      - compose/env/odoo.env
     environment:
 {%- if cookiecutter.__use_squid_allow | bool %}
       http_proxy: "http://{{ get_hostname('squid', 'ci') }}:3129"
@@ -54,12 +67,15 @@ services:
       OCONF__options__workers: 0
       OCONF__options__max_cron_threads: 0
       OCONF__options__test_enable: true
-    depends_on:
-{%- if cookiecutter.__use_squid_allow | bool %}
-      - squid
-{%- endif %}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8069/web/login || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
 
 networks:
+  default:
   dbnet:
     driver: bridge
 

@@ -19,7 +19,8 @@
 ## Features
 
 - Developer and CI environments
-- Predefined tasks for working with the environment and building the production image 
+- Predefined tasks (using invoke)
+- Support podman and docker workflows
 - AI-Ready (comes with documentation for AI agents)
 - [Squid](https://www.squid-cache.org/) - Traffic filter [all envs]
 - [pgWeb](https://sosedoff.github.io/pgweb/) - PostgreSQL client [dev env]

@@ -3,17 +3,15 @@
 services:
 {%- if cookiecutter.__use_squid_allow | bool %}
   squid:
-    extends:
-      file: common.yml
-      service: squid
+    image: ubuntu/squid:latest
     hostname: "{{ get_hostname('squid', 'dev') }}"
     volumes:
-      - ./config/squid.conf:/etc/squid/squid.conf:ro,Z
-      - ./config/squid_allowed_domains.txt:/etc/squid/allowed_domains.txt:ro,Z
-      - ./config/squid_allowed_ips.txt:/etc/squid/allowed_ips.txt:ro,Z
-      - ./config/squid_allowed_ports.txt:/etc/squid/allowed_ports.txt:ro,Z
+      - ./compose/config/squid.conf:/etc/squid/squid.conf:ro,Z
+      - ./compose/config/squid_allowed_domains.txt:/etc/squid/allowed_domains.txt:ro,Z
+      - ./compose/config/squid_allowed_ips.txt:/etc/squid/allowed_ips.txt:ro,Z
+      - ./compose/config/squid_allowed_ports.txt:/etc/squid/allowed_ports.txt:ro,Z
       
-{%- endif %}
+{% endif %}
   greenmail:
     image: greenmail/standalone:latest
     hostname: "{{ get_hostname('greenmail', 'dev') }}"
@@ -21,27 +19,47 @@ services:
     environment:
       GREENMAIL_OPTS: -Dgreenmail.users={{ cookiecutter.greenmail_users }} -Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled
 
-{%- set pgdata = "/var/lib/postgresql" if cookiecutter.postgres_version|float >= 18 else "/var/lib/postgresql/data" %}
+{% set pgdata = "/var/lib/postgresql" if cookiecutter.postgres_version|float >= 18 else "/var/lib/postgresql/data" %}
   db:
-    extends:
-      file: common.yml
-      service: db
+    image: ghcr.io/grupoisonor/moouro:{{ cookiecutter.postgres_version }}
+    env_file: compose/env/postgres.env
+    secrets:
+      - superuser_database_password
+      - odoo_database_password
     hostname: "{{ get_hostname('db', 'dev') }}"
     networks:
       - dbnet
     volumes:
       - db:{{ pgdata }}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_ODOO_USER -d $$POSTGRES_ODOO_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   {% set dev_main_email_account = get_main_email_account() | from_json -%}
   odoo:
-    extends:
-      file: common.yml
-      service: odoo
     build:
+      context: ./compose
+      additional_contexts:
+        deps: ./deps
+        addons: ./addons
       target: isodoo-runtime-private-dev
       args:
         PUID: ${UID:-1000}
         PGID: ${GID:-1000}
+    secrets:
+      - odoo_database_password
+    depends_on:
+      db:
+        condition: service_healthy
+{%- if cookiecutter.__use_squid_allow | bool %}
+      squid:
+        condition: service_started
+{%- endif %}
+      greenmail:
+        condition: service_started
     hostname: "{{ get_hostname('odoo', 'dev') }}"
     ports:
       - '127.0.0.1:{{ cookiecutter.odoo_version | int }}069:8069'
@@ -50,7 +68,7 @@ services:
       - dbnet
       - default
     env_file: 
-      - env/odoo.env
+      - compose/env/odoo.env
     environment:
 {%- if cookiecutter.__use_squid_allow | bool %}
       http_proxy: "http://{{ get_hostname('squid', 'dev') }}:3129"
@@ -70,11 +88,6 @@ services:
       OCONF__options__smtp_ssl: False
       OCONF__options__email_from: {{ dev_main_email_account.full }}
       OCONF__options__db_host: "{{ get_hostname('db', 'dev') }}"
-    depends_on:
-{%- if cookiecutter.__use_squid_allow | bool %}
-      - squid
-{%- endif %}
-      - greenmail
     volumes:
       - filestore:/var/lib/odoo/filestore
       - gitaggregator:/opt/odoo/git
@@ -102,6 +115,12 @@ services:
           initial_sync: true
         - action: rebuild
           path: ./deps
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8069/web/login || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
 
   pgweb:
     image: sosedoff/pgweb
@@ -133,6 +152,7 @@ services:
       - greenmail
 
 networks:
+  default:
   dbnet:
     driver: bridge
 
@@ -143,7 +163,7 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: ./addons/git
+      device: ../addons/git
       o: bind
 
 secrets:

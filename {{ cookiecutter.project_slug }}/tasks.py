@@ -29,19 +29,18 @@ def _run_container_cmd(
     stdin: str = None,
     pty: bool = True,
     compose: bool = False,
+    env: dict = None,
 ) -> str:
     """Execute a command using docker or podman."""
-    client_type = c.config.get("client_type", DEFAULT_CLIENT)
-    compose_env = c.config.get("compose_env", DEFAULT_COMPOSE_ENV)
-    if compose_env not in ("dev", "ci"):
-        raise RuntimeError("Invalid compose env. Valid are: dev or ci")
-    final_cmd = f"{client_type} compose -f compose/{compose_env}.yml {command}" if compose else f"{client_type} {command}"
+    client_type = c.config.get("isodoo_client_type", DEFAULT_CLIENT)
+    final_cmd = f"{client_type} compose {command}" if compose else f"{client_type} {command}"
     result = c.run(
         final_cmd,
         in_stream=stdin,
         pty=pty,
         warn=not check,
         hide=False,
+        env=env,
     )
     # Clean unwanted podman/docker warnings
     clean_lines = [
@@ -118,7 +117,7 @@ def build(c, image_tag: str = None, push: bool = False, no_cache: bool = False):
         build_cmd.append("--no-cache")
     if image_tag:
         build_cmd.extend(["-t", image_tag])
-    if c.config.get("client_type", DEFAULT_CLIENT) == "podman":
+    if c.config.get("isodoo_client_type", DEFAULT_CLIENT) == "podman":
         build_cmd.extend(["--format", "docker"])
     # Context path must be the last argument
     build_cmd.append("compose/")
@@ -127,11 +126,29 @@ def build(c, image_tag: str = None, push: bool = False, no_cache: bool = False):
         print(f"→ Pushing image {image_tag}...")
         _run_container_cmd(c, f"push {image_tag}")
 
-@task(help={
-    "cmd": "The command to launch",
-})
-def compose(c, cmd: str):
-    _run_container_cmd(c, cmd, compose=True)
+
+#-----------------
+# PROJECT TASKS
+#-----------------
+
+@task
+def mode(c, mode):
+    if mode not in ["build", "ci", "dev"]:
+        raise ValueError("Mode must be build/ci/dev")
+    # Check no services running
+    if os.path.exists("compose.yml") and _run_container_cmd(c, ["ps", "-q"]).strip():
+        raise RuntimeError("Stop services first")
+    project_root = Path(c.cwd)
+    # Symlink
+    target = project_root / f"{mode}.yml"
+    link = "compose.yml"
+    if os.path.islink(link) or os.path.exists(link):
+        os.unlink(link)
+    os.symlink(target, link)
+    # Create Mode Dirs
+    if mode == "dev":
+        git_dir = project_root / "addons" / "git"
+        git_dir.mkdir(parents=True, exist_ok=True)
 
 
 #-----------------
@@ -144,10 +161,9 @@ ns = Collection(
     module,
     click_odoo_update,
     build,
-    compose,
+    mode,
 )
 
 ns.configure({
-    "client_type": DEFAULT_CLIENT,
-    "compose_env": DEFAULT_COMPOSE_ENV,
+    "isodoo_client_type": DEFAULT_CLIENT,
 })
