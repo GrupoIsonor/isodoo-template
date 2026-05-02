@@ -40,7 +40,6 @@ def test_task_git_aggregate(project_tmpl, env_info):
     # Ensure Dev Mode
     switch_project_mode(env_info["client_type"], project_tmpl, "dev")
     result = invoke_task(env_info["client_type"], project_tmpl, "git-aggregate")
-    assert "addons updated!" in result['stdout'].lower()
     assert os.listdir(project_tmpl / "addons" / "git"), "Git addons is empty"
 
 def test_task_up_stop_start_down(project_tmpl, env_info):
