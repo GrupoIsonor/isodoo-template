@@ -17,7 +17,7 @@
     "squid_allowed_domains": ".google.com,.googleapis.com,.cdnjs.cloudflare.com,.gravatar.com,.github.com",
     "squid_allowed_ips": "",
     "squid_allowed_ports": "80,443",
-    "greenmail_users": "admin:admin@isodoo.com,demo:demo@isodoo.com",
+    "greenmail_users": "admin:admin@example.com,demo:demo@example.com",
     "_default_odoo_db_password": "odoo",
     "_default_odoo_admin_passwd": "superadmin",
     "_default_postgres_superuser_password": "postgres",
