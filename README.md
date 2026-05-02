@@ -1,7 +1,7 @@
 <h1 align="center">
   <div>isOdoo - Template</div>
 
-[![Tests](https://github.com/GrupoIsonor/isodoo-template/actions/workflows/isodoo.yml/badge.svg)](https://github.com/GrupoIsonor/isodoo-template/actions/workflows/isodoo.yml)
+[![Tests](https://github.com/GrupoIsonor/isodoo-template/actions/workflows/isodoo.yml/badge.svg)](https://github.com/GrupoIsonor/isodoo-template/actions/workflows/isodoo-template.yml)
 
 </h1>
 

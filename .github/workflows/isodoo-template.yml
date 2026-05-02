@@ -1,4 +1,4 @@
-name: isOdoo
+name: isOdoo Cookiecutter Template
 
 on:
   pull_request:
