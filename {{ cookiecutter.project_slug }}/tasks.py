@@ -71,9 +71,9 @@ def _run_compose_service(c, service: str, command: str, tty=False, extra_opts: s
 })
 def up(c, services: str = "", detach: bool = True):
     # Symlink
-    link = "compose.yml"
+    link = "compose.yaml"
     if not os.path.islink(link) and not os.path.exists(link):
-        print("No compose.yml detected... Fallback to 'dev' mode...")
+        print("No compose.yaml detected... Fallback to 'dev' mode...")
         mode(c, "dev")
     cmd = ["up"]
     if services:
@@ -191,12 +191,12 @@ def mode(c, mode: str):
     if mode not in ["ci", "dev"]:
         raise ValueError("Mode must be dev/ci")
     # Check no services running
-    if os.path.exists("compose.yml") and _run_container_cmd(c, "ps -q", compose=True, pty=False).strip():
+    if os.path.exists("compose.yaml") and _run_container_cmd(c, "ps -q", compose=True, pty=False).strip():
         raise RuntimeError("Stop services first")
     project_root = Path(c.cwd)
     # Symlink
-    target = project_root / f"{mode}.yml"
-    link = "compose.yml"
+    target = project_root / f"{mode}.yaml"
+    link = "compose.yaml"
     if os.path.islink(link) or os.path.exists(link):
         os.unlink(link)
     os.symlink(target, link)

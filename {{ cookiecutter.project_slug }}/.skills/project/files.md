@@ -14,10 +14,8 @@
 - `compose/.secrets/` — Secret files used by services
 - `compose/config/` — Configuration files for services
 - `compose/env/` — Environment variables (per environment)
-- `compose/common.yml` — Common services for all environments
-- `compose/build.yml` — Build definition
-- `compose/dev.yml` — Development services
-- `compose/ci.yml` — CI services
+- `dev.yaml` — Development services
+- `ci.yaml` — CI services
 - `compose/Dockerfile` — Final build stage (isOdoo onbuild image)
 
 ---

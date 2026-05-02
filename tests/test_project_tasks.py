@@ -29,12 +29,12 @@ def test_task_mode(project_tmpl, env_info):
     # Dev Mode
     result = switch_project_mode(env_info["client_type"], project_tmpl, "dev")
     assert "mode changed to dev" in result['stdout'].lower()
-    compose_link = project_tmpl / "compose.yml"
-    assert compose_link.exists() and compose_link.is_symlink(), "Symlink compose.yml not found"
-    assert compose_link.resolve().name == "dev.yml"
+    compose_link = project_tmpl / "compose.yaml"
+    assert compose_link.exists() and compose_link.is_symlink(), "Symlink compose.yaml not found"
+    assert compose_link.resolve().name == "dev.yaml"
     # CI Mode
     switch_project_mode(env_info["client_type"], project_tmpl, "ci")
-    assert (project_tmpl / "compose.yml").resolve().name == "ci.yml"
+    assert (project_tmpl / "compose.yaml").resolve().name == "ci.yaml"
 
 def test_task_git_aggregate(project_tmpl, env_info):
     # Ensure CI Mode

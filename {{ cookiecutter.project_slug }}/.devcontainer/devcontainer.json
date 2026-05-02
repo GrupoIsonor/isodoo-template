@@ -1,6 +1,6 @@
 {
   "name": "{{ cookiecutter.project_name }} (Odoo {{ cookiecutter.odoo_version }})",
-  "dockerComposeFile": "../compose/dev.yml",
+  "dockerComposeFile": "../compose/dev.yaml",
   "service": "odoo",
   "workspaceFolder": "/var/lib/odoo/private",
 
