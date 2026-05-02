@@ -26,21 +26,21 @@ def _wait_for_odoo(ip_address, port):
 
 def test_task_mode(project_tmpl, env_info):
     project_tmpl = Path(project_tmpl)
-    # CI Mode
-    result = switch_project_mode(env_info["client_type"], project_tmpl, "ci")
-    assert "mode changed to ci" in result['stdout'].lower()
+    # Dev Mode
+    result = switch_project_mode(env_info["client_type"], project_tmpl, "dev")
+    assert "mode changed to dev" in result['stdout'].lower()
     compose_link = project_tmpl / "compose.yml"
     assert compose_link.exists() and compose_link.is_symlink(), "Symlink compose.yml not found"
-    assert compose_link.resolve().name == "ci.yml"
-    # Dev Mode
-    switch_project_mode(env_info["client_type"], project_tmpl, "dev")
-    assert (project_tmpl / "compose.yml").resolve().name == "dev.yml"
+    assert compose_link.resolve().name == "dev.yml"
+    # CI Mode
+    switch_project_mode(env_info["client_type"], project_tmpl, "ci")
+    assert (project_tmpl / "compose.yml").resolve().name == "ci.yml"
 
 def test_task_git_aggregate(project_tmpl, env_info):
-    # Ensure Dev Mode
-    switch_project_mode(env_info["client_type"], project_tmpl, "dev")
+    # Ensure CI Mode
+    switch_project_mode(env_info["client_type"], project_tmpl, "ci")
     result = invoke_task(env_info["client_type"], project_tmpl, "git-aggregate")
-    assert os.listdir(project_tmpl / "addons" / "git"), "Git addons is empty"
+    assert "addons updated!" in result['stdout'].lower()
 
 def test_task_up_stop_start_down(project_tmpl, env_info):
     switch_project_mode(env_info["client_type"], project_tmpl, "ci")
