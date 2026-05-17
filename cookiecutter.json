@@ -1,27 +1,27 @@
 {
     "project_name": "My isOdoo Project",
-    "project_slug": "my-isodoo-project",
+    "project_slug": "{{ cookiecutter.project_name | lower | replace(' ', '_') }}",
     "project_owner": "Grupo Isonor",
     "project_owner_url": "https://www.grupoisonor.es",
     "project_license": ["AGPL-3", "GPL-2", "GPL-2 or any later version", "GPL-3", "GPL-3 or any later version", "LGPL-3", "Proprietary"],
-    "project_repository": "",
+    "project_repository": "{{ 'https://www.gitlab.com/' ~ cookiecutter.project_owner | replace(' ', '') ~ cookiecutter.project_slug }}",
     "odoo_version": "19.0",
     "odoo_db_name": "odoodb",
     "odoo_db_user": "odoo",
+    "odoo_db_password": "odoo",
     "odoo_db_filter": "^{{ cookiecutter.odoo_db_name }}$",
+    "odoo_admin_passwd": "superadmin",
+    "odoo_base_language": "{{ get_odoo_lang('en_US') }}",
     "odoo_dependencies_apt": "",
     "odoo_dependencies_npm": "",
     "odoo_dependencies_pip": "",
-    "postgres_version": "18",
+    "postgres_version": "{{ get_odoo_pg_version(cookiecutter.odoo_version) }}",
     "postgres_superuser_user": "postgres",
-    "squid_allowed_domains": ".google.com,.googleapis.com,.cdnjs.cloudflare.com,.gravatar.com,.github.com",
+    "postgres_superuser_password": "postgres",
+    "squid_allowed_domains": ".unsplash.com,.google.com,.googleapis.com,.cdnjs.cloudflare.com,.gravatar.com,.github.com",
     "squid_allowed_ips": "",
     "squid_allowed_ports": "80,443",
     "greenmail_users": "admin:admin@example.com,demo:demo@example.com",
-    "_default_odoo_db_password": "odoo",
-    "_default_odoo_admin_passwd": "superadmin",
-    "_default_postgres_superuser_password": "postgres",
-    "_default_backup_password": "super_secret_backup_password",
     "_precommit_node_version": "24.13.0",
     "_precommit_maintainer_tools_rev": "71aa4caec15e8c1456b4da19e9f39aa0aa7377a9",
     "_precommit_odoo_hooks_rev": "v0.2.20",
@@ -32,15 +32,18 @@
     "_precommit_eslint_rev": "v9.39.1",
     "_debugpy_port": "5678",
     "_squid_debug_options": "ALL,1 28,3 33,2",
+    "_squid_no_proxy": "localhost,127.0.0.1,::1,*.local,10.0.0.0/8,192.168.0.0/16",
+    "_bind_ip": "127.0.0.1",
 
     "__use_squid_allow": "{{ cookiecutter.squid_allowed_domains | length > 0 or cookiecutter.squid_allowed_ips | length > 0 or cookiecutter.squid_allowed_ports | length > 0 }}",
+    "__postgres_pgdata": "{{ '/var/lib/postgresql' if cookiecutter.postgres_version|float >= 18 else '/var/lib/postgresql/data' }}",
 
     "_copy_without_render": [
         ".module-readme.rst.j2"
     ],
 
     "_extensions": [
-        "local_extensions.CPUExtension",
+        "local_extensions.isOdooAutoConfig",
         "jinja2_ansible_filters.AnsibleCoreFiltersExtension"
     ]
 }

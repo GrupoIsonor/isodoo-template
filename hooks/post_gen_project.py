@@ -35,4 +35,4 @@ for file in files_to_remove:
 shutil.rmtree(project_root / "macros")
 
 ### Prepare Dev Environment
-subprocess.run(["inv", "mode", "dev"], check=True)
+subprocess.run(["inv", "mode", "dev"], check=True, capture_output=True)

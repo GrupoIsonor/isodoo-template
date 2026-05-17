@@ -69,9 +69,6 @@
                 "command": "docker compose up -d",
                 "options": {
                     "cwd": "${workspaceFolder}",
-                    "env": {
-                        "DEBUGPY_ENABLED": "true"
-                    }
                 },
                 "presentation": {
                     "reveal": "always",
@@ -92,6 +89,17 @@
                 "command": "docker compose down",
                 "options": {
                     "cwd": "${workspaceFolder}"
+                }
+            },
+            {
+                "label": "Start Odoo DebugPy (Docker)",
+                "type": "shell",
+                "command": "docker compose up -d",
+                "options": {
+                    "cwd": "${workspaceFolder}",
+                    "env": {
+                        "DEBUGPY_ENABLED": "true"
+                    }
                 }
             }
         ]
@@ -123,7 +131,7 @@
                     }
                 ],
                 "justMyCode": false,
-                "preLaunchTask": "🚀 Start Odoo (Docker)"
+                "preLaunchTask": "🚀 Start Odoo DebugPy (Docker)"
             }
         ]
     }

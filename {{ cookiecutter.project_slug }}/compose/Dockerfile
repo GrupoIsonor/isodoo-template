@@ -31,8 +31,9 @@ USER odoo
 # Install extra tools
 COPY --chown=odoo:odoo start_dev.sh /usr/local/bin/start_dev
 ENV DEBUGPY_LISTEN_ADDRESS="0.0.0.0:5678" \
-    DEBUGPY_ENABLE=False \
-    GEVENT_SUPPORT=False
+    DEBUGPY_ENABLED=false \
+    ODOO_DEV_MODES="all" \
+    GEVENT_SUPPORT=false
 ARG DEVEL_EXTRA_PIP_PKGS="debugpy ipdb pudb wdb"
 RUN set -eux; \
     chmod +x /usr/local/bin/start_dev; \

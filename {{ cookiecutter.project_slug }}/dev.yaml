@@ -10,7 +10,6 @@ services:
       - ./compose/config/squid_allowed_domains.txt:/etc/squid/allowed_domains.txt:ro,Z
       - ./compose/config/squid_allowed_ips.txt:/etc/squid/allowed_ips.txt:ro,Z
       - ./compose/config/squid_allowed_ports.txt:/etc/squid/allowed_ports.txt:ro,Z
-
 {% endif %}
   greenmail:
     image: greenmail/standalone:latest
@@ -19,20 +18,20 @@ services:
     environment:
       GREENMAIL_OPTS: -Dgreenmail.users={{ cookiecutter.greenmail_users }} -Dgreenmail.setup.test.all -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.auth.disabled
 
-{% set pgdata = "/var/lib/postgresql" if cookiecutter.postgres_version|float >= 18 else "/var/lib/postgresql/data" %}
   db:
     image: ghcr.io/grupoisonor/moouro:{{ cookiecutter.postgres_version }}
     env_file: compose/env/postgres.env
-    secrets:
-      - superuser_database_password
-      - odoo_database_password
     hostname: "{{ get_hostname('db', 'dev') }}"
     networks:
       - dbnet
     volumes:
-      - db:{{ pgdata }}
+      - db:{{ cookiecutter.__postgres_pgdata }}
     healthcheck:
+{%- if cookiecutter.odoo_version|float < 19 %}
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_ODOO_USER -d $$POSTGRES_ODOO_DB"]
+{%- else %}
+      test: ["CMD-SHELL", "pg_isready"]
+{%- endif %}
       interval: 10s
       timeout: 5s
       retries: 5
@@ -49,9 +48,6 @@ services:
       args:
         PUID: ${UID:-1000}
         PGID: ${GID:-1000}
-    secrets:
-      - odoo_database_password
-      - odoo_admin_database_manager_password
     depends_on:
       db:
         condition: service_healthy
@@ -63,8 +59,8 @@ services:
         condition: service_started
     hostname: "{{ get_hostname('odoo', 'dev') }}"
     ports:
-      - '127.0.0.1:{{ cookiecutter.odoo_version | int }}069:8069'
-      - '127.0.0.1:{{ cookiecutter._debugpy_port }}:5678'
+      - '{{ cookiecutter._bind_ip }}:{{ cookiecutter.odoo_version | int }}069:8069'
+      - '{{ cookiecutter._bind_ip }}:{{ cookiecutter._debugpy_port }}:5678'
     networks:
       - dbnet
       - default
@@ -72,26 +68,27 @@ services:
       - compose/env/odoo.env
     environment:
 {%- if cookiecutter.__use_squid_allow | bool %}
-      http_proxy: "http://{{ get_hostname('squid', 'dev') }}:3129"
-      https_proxy: "http://{{ get_hostname('squid', 'dev') }}:3129"
-      no_proxy: "localhost,127.0.0.1,::1,*.local,10.0.0.0/8,192.168.0.0/16"
-      HTTP_PROXY: "http://{{ get_hostname('squid', 'dev') }}:3129"
-      HTTPS_PROXY: "http://{{ get_hostname('squid', 'dev') }}:3129"
-      NO_PROXY: "localhost,127.0.0.1,::1,*.local,10.0.0.0/8,192.168.0.0/16"
+      http_proxy: &http_proxy "http://{{ get_hostname('squid', 'dev') }}:3129"
+      https_proxy: *http_proxy
+      no_proxy: &no_proxy "{{ cookiecutter._squid_no_proxy }}"
+      HTTP_PROXY: *http_proxy
+      HTTPS_PROXY: *http_proxy
+      NO_PROXY: *no_proxy
 {%- endif %}
       DEBUGPY_ENABLED: ${DEBUGPY_ENABLED:-false}
+      ODOO_DEV_MODES: ${ODOO_DEV_MODES:-all}
       OCONF__options__log_level: debug
       OCONF__options__log_handler: ":DEBUG"
-      OCONF__options__smtp_server: {{ get_hostname('greenmail', 'dev') }}
+      OCONF__options__smtp_server: "{{ get_hostname('greenmail', 'dev') }}"
       OCONF__options__smtp_port: 3025
-      OCONF__options__smtp_user: {{ dev_main_email_account.user }}
-      OCONF__options__smtp_password: {{ dev_main_email_account.password }}
+      OCONF__options__smtp_user: "{{ dev_main_email_account.user }}"
+      OCONF__options__smtp_password: "{{ dev_main_email_account.password }}"
       OCONF__options__smtp_ssl: False
-      OCONF__options__email_from: {{ dev_main_email_account.full }}
+      OCONF__options__email_from: "{{ dev_main_email_account.full }}"
       OCONF__options__db_host: "{{ get_hostname('db', 'dev') }}"
-      FOCONF__options__admin_passwd: /run/secrets/odoo_admin_database_manager_password
+      OCONF__options__admin_passwd: "{{ cookiecutter.odoo_admin_passwd }}"
     volumes:
-      - filestore:/var/lib/odoo/filestore
+      - filestore:/var/lib/odoo/data
       - gitaggregator:/opt/odoo/git
     develop:
       watch:
@@ -131,9 +128,9 @@ services:
     networks:
       - dbnet
     ports:
-      - "127.0.0.1:{{ cookiecutter.odoo_version | int }}081:8081"
+      - "{{ cookiecutter._bind_ip }}:{{ cookiecutter.odoo_version | int }}081:8081"
     environment:
-      PGWEB_DATABASE_URL: postgres://{{ cookiecutter.odoo_db_user }}:{{ cookiecutter._default_odoo_db_password }}@{{ get_hostname('db', 'dev') }}:5432/{{ cookiecutter.odoo_db_name }}?sslmode=disable
+      PGWEB_DATABASE_URL: postgres://{{ cookiecutter.odoo_db_user }}:{{ cookiecutter.odoo_db_password }}@{{ get_hostname('db', 'dev') }}:5432/{{ cookiecutter.odoo_db_name }}?sslmode=disable
     depends_on:
       db:
         condition: service_healthy
@@ -143,11 +140,11 @@ services:
     hostname: "{{ get_hostname('roundcube', 'dev') }}"
     restart: unless-stopped
     ports:
-      - "127.0.0.1:{{ cookiecutter.odoo_version | int }}090:80"
+      - "{{ cookiecutter._bind_ip }}:{{ cookiecutter.odoo_version | int }}090:80"
     environment:
-      ROUNDCUBEMAIL_DEFAULT_HOST: {{ get_hostname('greenmail', 'dev') }}
+      ROUNDCUBEMAIL_DEFAULT_HOST: "{{ get_hostname('greenmail', 'dev') }}"
       ROUNDCUBEMAIL_DEFAULT_PORT: 3143
-      ROUNDCUBEMAIL_SMTP_SERVER: {{ get_hostname('greenmail', 'dev') }}
+      ROUNDCUBEMAIL_SMTP_SERVER: "{{ get_hostname('greenmail', 'dev') }}"
       ROUNDCUBEMAIL_SMTP_PORT: 3025
       ROUNDCUBEMAIL_DB_TYPE: sqlite
     depends_on:
@@ -167,14 +164,3 @@ volumes:
       type: none
       device: ./addons/git
       o: bind
-
-secrets:
-  superuser_database_password:
-    x-podman.relabel: Z
-    file: compose/.secrets/superuser_database_password.txt
-  odoo_database_password:
-    x-podman.relabel: Z
-    file: compose/.secrets/odoo_database_password.txt
-  odoo_admin_database_manager_password:
-    x-podman.relabel: Z
-    file: compose/.secrets/odoo_admin_database_manager_password.txt

@@ -1,31 +1,15 @@
 #!/usr/bin/env python3
 # Copyright Grupo Isonor - Alexandre D. <dev@redneboa.es>
 
-import os
 import requests
-import time
 import pytest
+import subprocess
+import json
 from pathlib import Path
-from conftest import invoke_task, switch_project_mode
-
-def _wait_for_odoo(ip_address, port):
-    from requests.exceptions import RequestException
-
-    url = f"http://{ip_address}:{port}"
-    for _ in range(60):
-        try:
-            r = requests.get(url, timeout=5)
-            if r.status_code == 200:
-                break
-        except RequestException:
-            pass
-        time.sleep(2)
-    else:
-        raise TimeoutError("Odoo did not start on time")
+from conftest import EXTRA_ADDONS, invoke_task, switch_project_mode, wait_for_odoo
 
 
 def test_task_mode(project_tmpl, env_info):
-    project_tmpl = Path(project_tmpl)
     # Dev Mode
     result = switch_project_mode(env_info["client_type"], project_tmpl, "dev")
     assert "mode changed to dev" in result['stdout'].lower()
@@ -36,29 +20,66 @@ def test_task_mode(project_tmpl, env_info):
     switch_project_mode(env_info["client_type"], project_tmpl, "ci")
     assert (project_tmpl / "compose.yaml").resolve().name == "ci.yaml"
 
+def test_task_module(project_tmpl, env_info):
+    switch_project_mode(env_info["client_type"], project_tmpl, "ci")
+    extra_mod = EXTRA_ADDONS[env_info["options"]["odoo_version"]][1]
+    result = invoke_task(env_info["client_type"], project_tmpl, "module", action="list")
+    mods = json.loads(result["return"])
+    assert "contacts" not in mods
+    assert extra_mod not in mods
+    invoke_task(env_info["client_type"], project_tmpl, "module", action="install", modules="contacts")
+    result = invoke_task(env_info["client_type"], project_tmpl, "module", action="list")
+    mods = json.loads(result["return"])
+    assert "contacts" in mods
+    invoke_task(env_info["client_type"], project_tmpl, "module", action="install", extra=True)
+    result = invoke_task(env_info["client_type"], project_tmpl, "module", action="list")
+    mods = json.loads(result["return"])
+    assert extra_mod in mods
+
 def test_task_git_aggregate(project_tmpl, env_info):
     # Ensure CI Mode
     switch_project_mode(env_info["client_type"], project_tmpl, "ci")
     result = invoke_task(env_info["client_type"], project_tmpl, "git-aggregate")
     assert "addons updated!" in result['stdout'].lower()
 
-def test_task_up_stop_start_down(project_tmpl, env_info):
-    switch_project_mode(env_info["client_type"], project_tmpl, "ci")
+@pytest.mark.parametrize("project_mode", ["ci", "dev"])
+def test_task_up_stop_start_down(project_tmpl, env_info, project_mode):
+    switch_project_mode(env_info["client_type"], project_tmpl, project_mode)
     # Up
     invoke_task(env_info["client_type"], project_tmpl, "up", detach=True)
-    _wait_for_odoo(env_info["ip"], env_info["ports"]["odoo"])
+    wait_for_odoo(env_info["ip"], env_info["ports"]["odoo"])
+    if project_mode == "dev":
+        # pgweb
+        r = requests.get(f"http://{env_info['ip']}:{env_info['ports']['pgweb']}", timeout=5)
+        assert r.status_code == 200
+        # roundcube
+        r = requests.get(f"http://{env_info['ip']}:{env_info['ports']['roundcube']}", timeout=5)
+        assert r.status_code == 200
     # Stop
     invoke_task(env_info["client_type"], project_tmpl, "stop")
-    url = f"http://{env_info['ip']}:{env_info['ports']['odoo']}"
     with pytest.raises(requests.exceptions.ConnectionError):
-        requests.get(url, timeout=5)
+        requests.get(f"http://{env_info['ip']}:{env_info['ports']['odoo']}", timeout=5)
     # Start
     invoke_task(env_info["client_type"], project_tmpl, "start")
-    _wait_for_odoo(env_info["ip"], env_info["ports"]["odoo"])
+    wait_for_odoo(env_info["ip"], env_info["ports"]["odoo"])
     # Down
     invoke_task(env_info["client_type"], project_tmpl, "down")
 
-def test_click_odoo_update(project_tmpl, env_info):
+def test_task_click_odoo_update(project_tmpl, env_info):
     switch_project_mode(env_info["client_type"], project_tmpl, "ci")
     result = invoke_task(env_info["client_type"], project_tmpl, "click-odoo-update")
     assert "starting..." in result['stdout'].lower()
+
+def test_task_build(project_tmpl, env_info):
+    switch_project_mode(env_info["client_type"], project_tmpl, "ci")
+    image_tag = "test-isodoo-dummy"
+    # Build
+    invoke_task(env_info["client_type"], project_tmpl, "build", image_tag=image_tag)
+    # Verify exists
+    result = subprocess.run(
+        [env_info["client_type"], "images", "-q", image_tag],
+        capture_output=True, text=True
+    )
+    assert result.stdout.strip(), f"The image {image_tag} was not created"
+    # Clean
+    subprocess.run([env_info["client_type"], "rmi", "-f", image_tag], check=True)

@@ -55,23 +55,23 @@
 
 It serves as a starting point for development teams to build, test, and customize their isOdoo-based applications. It facilitates local development, testing environments, and the creation of optimized container images ready for production deployment.
 
+## Environment Variables (dev mode)
+
+| Name | Description | Default |
+| ---- | ----------- | ------- |
+| DEBUGPY_ENABLED | Enable debugpy | false |
+| ODOO_DEV_MODES | Development modes | all |
+
+** Check available "dev modes" here: https://www.odoo.com/documentation/19.0/developer/reference/cli.html#cmdoption-odoo-bin-dev
+
 ## Simple Usage
 
 ```sh
 cruft create https://github.com/GrupoIsonor/isodoo-template.git
+cd <project_folder>
+inv db init
+docker compose up
 ```
-
-Due to security policies, this template does not prompt for passwords. Default values are used. The best way to control these values is through the python API or by forcing the values in the Cookiecutter configuration file.
-
-Default values:
-- Postgres Superuser Password: postgres
-- Odoo DB Password: odoo
-- Odoo Admin DB Manager Password: superadmin
-
-Cookiecutter keys:
-- Postgres Superuser Password: _default_postgres_superuser_password
-- Odoo DB Password: _default_odoo_db_password
-- Odoo Admin DB Manager Password:: _default_odoo_admin_passwd
 
 ## Advance Usage
 

@@ -10,22 +10,21 @@ services:
       - ./compose/config/squid_allowed_domains.txt:/etc/squid/allowed_domains.txt:ro,Z
       - ./compose/config/squid_allowed_ips.txt:/etc/squid/allowed_ips.txt:ro,Z
       - ./compose/config/squid_allowed_ports.txt:/etc/squid/allowed_ports.txt:ro,Z
-
-{%- endif %}
-{% set pgdata = "/var/lib/postgresql" if cookiecutter.postgres_version|float >= 18 else "/var/lib/postgresql/data" %}
+{% endif %}
   db:
     image: ghcr.io/grupoisonor/moouro:{{ cookiecutter.postgres_version }}
     env_file: compose/env/postgres.env
-    secrets:
-      - superuser_database_password
-      - odoo_database_password
     hostname: "{{ get_hostname('db', 'ci') }}"
     networks:
       - dbnet
     volumes:
-      - db:{{ pgdata }}
+      - db:{{ cookiecutter.__postgres_pgdata }}
     healthcheck:
+{%- if cookiecutter.odoo_version|float < 19 %}
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_ODOO_USER -d $$POSTGRES_ODOO_DB"]
+{%- else %}
+      test: ["CMD-SHELL", "pg_isready"]
+{%- endif %}
       interval: 10s
       timeout: 5s
       retries: 5
@@ -38,8 +37,6 @@ services:
         deps: ./deps
         addons: ./addons
       target: isodoo-runtime-private
-    secrets:
-      - odoo_database_password
     depends_on:
       db:
         condition: service_healthy
@@ -49,7 +46,7 @@ services:
 {%- endif %}
     hostname: "{{ get_hostname('odoo', 'ci') }}"
     ports:
-      - '127.0.0.1:{{ cookiecutter.odoo_version | int }}069:8069'
+      - '{{ cookiecutter._bind_ip }}:{{ cookiecutter.odoo_version | int }}069:8069'
     networks:
       - dbnet
       - default
@@ -57,19 +54,26 @@ services:
       - compose/env/odoo.env
     environment:
 {%- if cookiecutter.__use_squid_allow | bool %}
-      http_proxy: "http://{{ get_hostname('squid', 'ci') }}:3129"
-      https_proxy: "http://{{ get_hostname('squid', 'ci') }}:3129"
-      no_proxy: "localhost,127.0.0.1,::1,*.local,10.0.0.0/8,192.168.0.0/16"
-      HTTP_PROXY: "http://{{ get_hostname('squid', 'ci') }}:3129"
-      HTTPS_PROXY: "http://{{ get_hostname('squid', 'ci') }}:3129"
-      NO_PROXY: "localhost,127.0.0.1,::1,*.local,10.0.0.0/8,192.168.0.0/16"
+      http_proxy: &http_proxy "http://{{ get_hostname('squid', 'ci') }}:3129"
+      https_proxy: *http_proxy
+      no_proxy: &no_proxy "{{ cookiecutter._squid_no_proxy }}"
+      HTTP_PROXY: *http_proxy
+      HTTPS_PROXY: *http_proxy
+      NO_PROXY: *no_proxy
 {%- endif %}
-      OCONF__options__log_level: info
-      OCONF__options__log_handler: ":INFO"
+      OCONF__options__log_level: warn
+      OCONF__options__log_handler: ":WARN"
       OCONF__options__db_host: "{{ get_hostname('db', 'ci') }}"
       OCONF__options__workers: 0
       OCONF__options__max_cron_threads: 0
-      OCONF__options__test_enable: true
+{%- if cookiecutter.odoo_version|float < 19 %}
+      OCONF__options__without_demo: all
+{%- else %}
+      OCONF__options__without_demo: True
+{%- endif %}
+      OCONF__test__enable: "True"
+    volumes:
+      - filestore:/var/lib/odoo/data
     healthcheck:
       test: ["CMD-SHELL", "curl -fs http://localhost:8069/web/login || exit 1"]
       interval: 15s
@@ -83,12 +87,5 @@ networks:
     driver: bridge
 
 volumes:
+  filestore:
   db:
-
-secrets:
-  superuser_database_password:
-    x-podman.relabel: Z
-    file: compose/.secrets/superuser_database_password.txt
-  odoo_database_password:
-    x-podman.relabel: Z
-    file: compose/.secrets/odoo_database_password.txt
