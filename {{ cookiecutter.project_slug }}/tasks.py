@@ -78,7 +78,7 @@ def _run_compose_service(c, service: str, command: str, volumes: list[str] | Non
 @task(optional=["detach", "build", "no_cache"], help={
     "services": "Comma-separated list of services",
 })
-def up(c, services: str = "", detach: bool = True, build: bool = False, no_cache: bool = False):
+def up(c, services: str = "", detach: bool = True, build: bool = False, no_cache: bool = False, force_recreate: bool = False):
     # Symlink
     link = "compose.yaml"
     if not os.path.islink(link) and not os.path.exists(link):
@@ -91,6 +91,8 @@ def up(c, services: str = "", detach: bool = True, build: bool = False, no_cache
         cmd.append("--build")
     if no_cache:
         cmd.append("--no-cache")
+    if force_recreate:
+        cmd.append("--force-recreate")
     if services:
         cmd += [s.strip() for s in services.split(",")]
     _run_container_cmd(c, " ".join(cmd), compose=True)

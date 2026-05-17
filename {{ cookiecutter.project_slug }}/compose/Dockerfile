@@ -1,6 +1,7 @@
 FROM ghcr.io/grupoisonor/isodoo:{{ cookiecutter.odoo_version }} AS isodoo-runtime
 FROM isodoo-runtime AS isodoo-runtime-private
 COPY --from=addons --chown=odoo:odoo /private/ /var/lib/odoo/private
+COPY --from=addons --chown=odoo:odoo /addons.yaml /repos.yaml /opt/odoo/
 ENV OCONF__options__addons_path="/var/lib/odoo/private,${OCONF__options__addons_path}"
 
 FROM isodoo-runtime-private AS isodoo-runtime-private-dev

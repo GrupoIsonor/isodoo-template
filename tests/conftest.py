@@ -49,14 +49,14 @@ def wait_for_odoo(ip_address, port):
     from requests.exceptions import RequestException
 
     url = f"http://{ip_address}:{port}"
-    for _ in range(60):
+    for _ in range(120):
         try:
             r = requests.get(url, timeout=5)
             if r.status_code == 200:
                 break
         except RequestException:
             pass
-        time.sleep(2)
+        time.sleep(3)
     else:
         raise TimeoutError("Odoo did not start on time")
 
@@ -109,11 +109,13 @@ def invoke_task(container_engine: str, project_path: str | Path, task_name: str,
 def pytest_addoption(parser):
     parser.addoption("--odoo-version", action="store", default="6.0")
     parser.addoption("--client-type", action="store", default=None)
+    parser.addoption("--no-cache", action="store_true", default=False)
 
 @pytest.fixture(scope="session")
 def env_info(pytestconfig):
     odoo_ver = pytestconfig.getoption("odoo_version")
     client_type = pytestconfig.getoption("client_type") or _get_preferred_client_type()
+    no_cache = pytestconfig.getoption("no_cache")
     odoo_ver_int = int(float(odoo_ver))
     return {
         "ip": "127.0.0.1",
@@ -125,6 +127,7 @@ def env_info(pytestconfig):
         },
         "options": {
             "odoo_version": odoo_ver,
+            "no_cache": no_cache,
         },
         "client_type": client_type,
     }
@@ -140,6 +143,7 @@ def project_tmpl(env_info, tmp_path_factory):
             "project_name": "Test isOdoo Project",
             "project_slug": "test-isodoo-project",
             "odoo_version": env_info["options"]["odoo_version"],
+            "_debugpy_port": env_info["ports"]["debugpy"],
         }
     )
     project_path = Path(result_dir)
@@ -153,7 +157,7 @@ def project_tmpl(env_info, tmp_path_factory):
         # Use CI Mode
         switch_project_mode(env_info["client_type"], project_path, "ci")
         # Build
-        invoke_task(env_info["client_type"], project_path, "build", no_cache=True)
+        invoke_task(env_info["client_type"], project_path, "build", no_cache=env_info["options"]["no_cache"])
         # Initialize Odoo
         invoke_task(env_info["client_type"], project_path, "db", "init")
         yield project_path

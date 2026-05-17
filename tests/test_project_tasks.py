@@ -31,6 +31,7 @@ def test_task_module(project_tmpl, env_info):
     result = invoke_task(env_info["client_type"], project_tmpl, "module", action="list")
     mods = json.loads(result["return"])
     assert "contacts" in mods
+    invoke_task(env_info["client_type"], project_tmpl, "git-aggregate")
     invoke_task(env_info["client_type"], project_tmpl, "module", action="install", extra=True)
     result = invoke_task(env_info["client_type"], project_tmpl, "module", action="list")
     mods = json.loads(result["return"])
@@ -46,7 +47,7 @@ def test_task_git_aggregate(project_tmpl, env_info):
 def test_task_up_stop_start_down(project_tmpl, env_info, project_mode):
     switch_project_mode(env_info["client_type"], project_tmpl, project_mode)
     # Up
-    invoke_task(env_info["client_type"], project_tmpl, "up", detach=True)
+    invoke_task(env_info["client_type"], project_tmpl, "up", detach=True, force_recreate=True)
     wait_for_odoo(env_info["ip"], env_info["ports"]["odoo"])
     if project_mode == "dev":
         # pgweb
