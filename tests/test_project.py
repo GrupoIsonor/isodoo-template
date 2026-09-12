@@ -4,6 +4,7 @@
 import time
 import socket
 import pytest
+import os
 from conftest import invoke_task, switch_project_mode, wait_for_odoo
 
 
@@ -16,7 +17,7 @@ def test_project_structure(project_tmpl):
 
 def test_debugpy(project_tmpl, env_info):
     switch_project_mode(env_info["client_type"], project_tmpl, "dev")
-    invoke_task(env_info["client_type"], project_tmpl, "build", mode="dev")
+    invoke_task(env_info["client_type"], project_tmpl, "build", mode="dev", invoke_env={'UID': os.getuid(), 'GID': os.getgid()})
     try:
         invoke_task(env_info["client_type"], project_tmpl, "up", services="odoo", force_recreate=True, detach=True, invoke_env={'DEBUGPY_ENABLED': 'true'})
         host = env_info['ip']
@@ -36,6 +37,7 @@ def test_debugpy(project_tmpl, env_info):
 
 def test_squid(project_tmpl, env_info):
     switch_project_mode(env_info["client_type"], project_tmpl, "dev")
+    invoke_task(env_info["client_type"], project_tmpl, "build", mode="dev", invoke_env={'UID': os.getuid(), 'GID': os.getgid()})
     invoke_task(env_info["client_type"], project_tmpl, "up", services="odoo", force_recreate=True, detach=True)
     wait_for_odoo(env_info["ip"], env_info["ports"]["odoo"])
     result = invoke_task(env_info["client_type"], project_tmpl, "check-connection-code", dst="http://www.amazon.com")
