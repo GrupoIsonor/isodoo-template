@@ -1,5 +1,10 @@
 FROM ghcr.io/grupoisonor/isodoo:{{ cookiecutter.odoo_version }} AS isodoo-runtime
 FROM isodoo-runtime AS isodoo-runtime-private
+COPY --from=addons --chown=odoo:odoo /private/ /var/lib/odoo/private
+COPY --from=addons --chown=odoo:odoo /addons.yaml /repos.yaml /opt/odoo/
+ENV OCONF__options__addons_path="/var/lib/odoo/private,${OCONF__options__addons_path}"
+
+FROM isodoo-runtime-private AS isodoo-runtime-private-dev
 ARG PUID=10000
 ARG PGID=10001
 USER root
@@ -10,15 +15,7 @@ RUN set -eux; \
     if [ "${PUID}" != "$(id -u odoo)" ]; then \
         usermod -u "${PUID}" -g "${PGID}" odoo; \
     fi; \
-    chown -R odoo:odoo /home/odoo /opt/odoo /etc/odoo /var/lib/odoo;
-USER odoo
-COPY --from=addons --chown=odoo:odoo /private/ /var/lib/odoo/private
-COPY --from=addons --chown=odoo:odoo /addons.yaml /repos.yaml /opt/odoo/
-ENV OCONF__options__addons_path="/var/lib/odoo/private,${OCONF__options__addons_path}"
-
-FROM isodoo-runtime-private AS isodoo-runtime-private-dev
-USER root
-RUN set -eux; \
+    chown -R odoo:odoo /home/odoo /opt/odoo /etc/odoo /var/lib/odoo; \
     apt-get update && apt-get install -y --no-install-recommends \
         htop \
         vim \

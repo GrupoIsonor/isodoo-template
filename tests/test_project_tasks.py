@@ -5,6 +5,7 @@ import requests
 import pytest
 import subprocess
 import json
+import os
 from pathlib import Path
 from conftest import EXTRA_ADDONS, invoke_task, switch_project_mode, wait_for_odoo
 
@@ -47,7 +48,7 @@ def test_task_git_aggregate(project_tmpl, env_info):
 def test_task_pull_up_stop_start_down(project_tmpl, env_info, project_mode):
     switch_project_mode(env_info["client_type"], project_tmpl, project_mode)
     if project_mode == "dev":
-        invoke_task(env_info["client_type"], project_tmpl, "build", mode="dev")
+        invoke_task(env_info["client_type"], project_tmpl, "build", mode="dev", invoke_env={'UID': os.getuid(), 'GID': os.getgid()})
     # Up
     invoke_task(env_info["client_type"], project_tmpl, "up", detach=True, force_recreate=True)
     wait_for_odoo(env_info["ip"], env_info["ports"]["odoo"])
@@ -89,4 +90,5 @@ def test_task_build(project_tmpl, env_info):
 
 def test_task_pull(project_tmpl, env_info):
     switch_project_mode(env_info["client_type"], project_tmpl, "dev")
-    assert invoke_task(env_info["client_type"], project_tmpl, "pull", ignore_buildable=True)["return"] is None
+    result = invoke_task(env_info["client_type"], project_tmpl, "pull", ignore_buildable=True)
+    assert "pulled" in result['stdout'].lower()
