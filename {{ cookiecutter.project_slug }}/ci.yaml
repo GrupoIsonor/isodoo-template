@@ -37,6 +37,9 @@ services:
         deps: ./deps
         addons: ./addons
       target: isodoo-runtime-private
+      args:
+        PUID: ${PUID:-1000}
+        PGID: ${PGID:-1000}
     depends_on:
       db:
         condition: service_healthy

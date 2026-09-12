@@ -23,6 +23,14 @@ def _get_preferred_client_type():
 DEFAULT_CONTAINER_ENGINE = _get_preferred_client_type()
 
 
+def _get_container_ids(c) -> tuple[str, str]:
+    env = c.config.run.env
+    return (
+        str(env.get("PUID", os.getenv("PUID", os.getuid()))),
+        str(env.get("PGID", os.getenv("PGID", os.getgid()))),
+    )
+
+
 def _run_container_cmd(
     c,
     command: str,
@@ -37,6 +45,9 @@ def _run_container_cmd(
     """Execute a command using docker or podman."""
     client_type = c.config.get("isodoo_container_engine", DEFAULT_CONTAINER_ENGINE)
     final_cmd = f"{client_type} compose {command}" if compose else f"{client_type} {command}"
+    if compose:
+        puid, pgid = _get_container_ids(c)
+        env = {"PUID": puid, "PGID": pgid, **(env or {})}
     result = c.run(
         final_cmd,
         in_stream=StringIO(stdin) if stdin else None,
@@ -296,15 +307,18 @@ def build(c, mode="prod", image_tag=None, push: bool = False, no_cache: bool = F
         "--build-context", "deps=./deps",
         "--build-context", "addons=./addons",
     ]
+    puid, pgid = _get_container_ids(c)
     if mode == "prod":
         build_cmd += [
             "--target", "isodoo-runtime-private",
+            "--build-arg", f"PUID={puid}",
+            "--build-arg", f"PGID={pgid}",
         ]
     else:
         build_cmd += [
             "--target", "isodoo-runtime-private-dev",
-            "--build-arg", f"PUID={int(os.getenv('UID', 1000))}",
-            "--build-arg", f"PGID={int(os.getenv('GID', 1000))}",
+            "--build-arg", f"PUID={puid}",
+            "--build-arg", f"PGID={pgid}",
         ]
     if not image_tag:
         project_name = Path(os.getcwd()).name.lower().replace(" ", "_")
