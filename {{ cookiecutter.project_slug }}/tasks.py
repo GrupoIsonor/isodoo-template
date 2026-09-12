@@ -131,6 +131,25 @@ def stop(c, services: str = ""):
     _run_container_cmd(c, " ".join(cmd), compose=True)
 
 
+@task(help={
+    "services": "Comma-separated list of services",
+})
+def pull(c, services: str = "", ignore_buildable: bool = False, ignore_pull_failures: bool = False):
+    # Symlink
+    link = "compose.yaml"
+    if not os.path.islink(link) and not os.path.exists(link):
+        print("No compose.yaml detected... Fallback to 'dev' mode...")
+        mode(c, "dev")
+    cmd = ["pull"]
+    if ignore_buildable:
+        cmd.append("--ignore-buildable")
+    if ignore_pull_failures:
+        cmd.append("--ignore-pull-failures ")
+    if services:
+        cmd += [s.strip() for s in services.split(",")]
+    _run_container_cmd(c, " ".join(cmd), compose=True)
+
+
 @task(optional=["force"], help={
     "services": "Comma-separated list of services",
     "force": "Skip confirmation (default: False)",
@@ -340,6 +359,7 @@ ns = Collection(
     down,
     stop,
     start,
+    pull,
     destroy_this_project,
     git_aggregate,
     shell,

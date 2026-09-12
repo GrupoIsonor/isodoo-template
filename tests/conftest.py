@@ -154,6 +154,10 @@ def project_tmpl(env_info, tmp_path_factory):
         data[extra_addon_repo] = [extra_addon_name]
         yaml.dump(data, f, sort_keys=False, default_flow_style=False)
     try:
+        # Use Dev Mode
+        switch_project_mode(env_info["client_type"], project_path, "dev")
+        # Pull Images
+        invoke_task(env_info["client_type"], project_path, "pull", ignore_buildable=True)
         # Use CI Mode
         switch_project_mode(env_info["client_type"], project_path, "ci")
         # Build
