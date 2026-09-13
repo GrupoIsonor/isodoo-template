@@ -60,6 +60,28 @@ def wait_for_odoo(ip_address, port):
     else:
         raise TimeoutError("Odoo did not start on time")
 
+def render_template(env_info, tmp_path_factory, mode):
+    tmpdir = tmp_path_factory.mktemp("isodoo-render")
+    result_dir = cookiecutter(
+        template=".",
+        output_dir=str(tmpdir),
+        no_input=True,
+        extra_context={
+            "project_name": f"Test isOdoo Project {mode}",
+            "project_slug": f"test-isodoo-project-{mode}",
+            "odoo_version": env_info["options"]["odoo_version"],
+            "_debugpy_port": env_info["ports"]["debugpy"],
+        }
+    )
+    project_path = Path(result_dir)
+    assert project_path.exists(), "The template has not been rendered"
+    with open(project_path / "addons" / "addons.yaml", "r+") as f:
+        data = yaml.safe_load(f) or {}
+        extra_addon_repo, extra_addon_name = EXTRA_ADDONS[env_info["options"]["odoo_version"]]
+        data[extra_addon_repo] = [extra_addon_name]
+        yaml.dump(data, f, sort_keys=False, default_flow_style=False)
+    return project_path
+
 def invoke_task(container_engine: str, project_path: str | Path, task_name: str, *args, **kwargs):
     project_path = Path(project_path).resolve()
     tasks_path = project_path / "tasks.py"
@@ -133,38 +155,33 @@ def env_info(pytestconfig):
     }
 
 @pytest.fixture(scope="session")
-def project_tmpl(env_info, tmp_path_factory):
-    tmpdir = tmp_path_factory.mktemp("isodoo-render")
-    result_dir = cookiecutter(
-        template=".",
-        output_dir=str(tmpdir),
-        no_input=True,
-        extra_context={
-            "project_name": "Test isOdoo Project",
-            "project_slug": "test-isodoo-project",
-            "odoo_version": env_info["options"]["odoo_version"],
-            "_debugpy_port": env_info["ports"]["debugpy"],
-        }
-    )
-    project_path = Path(result_dir)
-    assert project_path.exists(), "The template has not been rendered"
-    with open(project_path / "addons" / "addons.yaml", "r+") as f:
-        data = yaml.safe_load(f) or {}
-        extra_addon_repo, extra_addon_name = EXTRA_ADDONS[env_info["options"]["odoo_version"]]
-        data[extra_addon_repo] = [extra_addon_name]
-        yaml.dump(data, f, sort_keys=False, default_flow_style=False)
+def project_tmpl_ci(env_info, tmp_path_factory):
+    project_path = render_template(env_info, tmp_path_factory, "ci")
     try:
-        # Use Dev Mode
-        switch_project_mode(env_info["client_type"], project_path, "dev")
-        # Pull Images
-        invoke_task(env_info["client_type"], project_path, "pull", ignore_buildable=True)
         # Use CI Mode
         switch_project_mode(env_info["client_type"], project_path, "ci")
+        # Pull Images
+        invoke_task(env_info["client_type"], project_path, "pull", ignore_buildable=True)
         # Build
         invoke_task(env_info["client_type"], project_path, "build", no_cache=env_info["options"]["no_cache"])
         # Initialize Odoo
         invoke_task(env_info["client_type"], project_path, "db", "init")
         yield project_path
     finally:
+        invoke_task(env_info["client_type"], project_path, "destroy-this-project", force=True)
+
+@pytest.fixture(scope="session")
+def project_tmpl_dev(env_info, tmp_path_factory):
+    project_path = render_template(env_info, tmp_path_factory, "dev")
+    try:
+        # Use Dev Mode
         switch_project_mode(env_info["client_type"], project_path, "dev")
+        # Pull Images
+        invoke_task(env_info["client_type"], project_path, "pull", ignore_buildable=True)
+        # Build
+        invoke_task(env_info["client_type"], project_path, "build", no_cache=env_info["options"]["no_cache"])
+        # Initialize Odoo
+        invoke_task(env_info["client_type"], project_path, "db", "init")
+        yield project_path
+    finally:
         invoke_task(env_info["client_type"], project_path, "destroy-this-project", force=True)
