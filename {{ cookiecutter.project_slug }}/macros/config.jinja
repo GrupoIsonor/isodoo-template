@@ -19,5 +19,5 @@
         {% set full_email = user ~ '@' ~ domain %}
     {% endif %}
 
-    {{ {"full": full_email, "user": user, "password": password, "domain": domain} | tojson }}
+    {{ {"full": full_email, "user": user, "password": password} | tojson }}
 {% endmacro %}

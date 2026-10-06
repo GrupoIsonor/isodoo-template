@@ -1,5 +1,4 @@
 {% from 'macros/networking.jinja' import get_hostname with context -%}
-{% from 'macros/config.jinja' import get_main_email_account with context -%}
 services:
 {%- if cookiecutter.__use_squid_allow | bool %}
   squid:
@@ -20,11 +19,7 @@ services:
     volumes:
       - db:{{ cookiecutter.__postgres_pgdata }}
     healthcheck:
-{%- if cookiecutter.odoo_version|float < 19 %}
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_ODOO_USER -d $$POSTGRES_ODOO_DB"]
-{%- else %}
       test: ["CMD-SHELL", "pg_isready"]
-{%- endif %}
       interval: 10s
       timeout: 5s
       retries: 5

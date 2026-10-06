@@ -1,4 +1,5 @@
 {% from '_helpers.jinja' import ruff_pyver_map, precommit_pylint_map -%}
+{% set pylint_version = precommit_pylint_map.get(cookiecutter.odoo_version) -%}
 exclude: |
   (?x)
   # NOT INSTALLABLE ADDONS
@@ -73,8 +74,9 @@ repos:
       - id: check-xml
       - id: mixed-line-ending
         args: ["--fix=lf"]
+{% if pylint_version -%}
   - repo: https://github.com/OCA/pylint-odoo
-    rev: "{{ precommit_pylint_map[cookiecutter.odoo_version] }}"
+    rev: "{{ pylint_version }}"
     hooks:
       - id: pylint_odoo
         name: pylint with optional checks
@@ -85,6 +87,7 @@ repos:
       - id: pylint_odoo
         args:
           - --rcfile=.pylintrc-mandatory
+{% endif -%}
   - repo: https://github.com/pre-commit/mirrors-eslint
     rev: "{{ cookiecutter._precommit_eslint_rev }}"
     hooks:

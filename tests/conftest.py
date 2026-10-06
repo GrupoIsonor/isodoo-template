@@ -6,10 +6,12 @@ import importlib.util
 import sys
 import os
 import shutil
+import subprocess
 import time
 import requests
 from io import StringIO
 from invoke import Context, Collection, Config
+from invoke.exceptions import UnexpectedExit
 import contextlib
 import pytest
 import yaml
@@ -40,6 +42,10 @@ def _get_preferred_client_type():
     if shutil.which("docker"):
         return "docker"
     raise RuntimeError("Need install podman or docker (with compose)")
+
+def _dump_logs(container_engine: str, project_path: Path):
+    # Fixtures destroy the project on exit, so capture logs before that
+    subprocess.run([container_engine, "compose", "logs", "--tail", "200"], cwd=project_path, check=False)
 
 def switch_project_mode(container_engine: str, project_path: str |  Path, mode: str):
     invoke_task(container_engine, project_path, "down")
@@ -111,6 +117,7 @@ def invoke_task(container_engine: str, project_path: str | Path, task_name: str,
         ctx.config.run.warn = True
         ctx.config.run.in_stream = False
         ctx.config["isodoo_container_engine"] = container_engine
+        ctx.config["isodoo_strict"] = kwargs.pop("strict", False)
         invoke_env = kwargs.get("invoke_env")
         if invoke_env:
             ctx.config.run.env.update(invoke_env)
@@ -122,6 +129,10 @@ def invoke_task(container_engine: str, project_path: str | Path, task_name: str,
             "stdout": stdout_capture.getvalue(),
             "stderr": stderr_capture.getvalue(),
         }
+    except UnexpectedExit as e:
+        # c.run output was redirected to the captures: surface it in the failure
+        out = (stdout_capture.getvalue() + stderr_capture.getvalue())[-4000:]
+        raise RuntimeError(f"{e.result.command!r} failed (exit {e.result.exited}):\n{out}") from e
     finally:
         os.chdir(old_cwd)
         sys.path[:] = old_path
@@ -161,12 +172,15 @@ def project_tmpl_ci(env_info, tmp_path_factory):
         # Use CI Mode
         switch_project_mode(env_info["client_type"], project_path, "ci")
         # Pull Images
-        invoke_task(env_info["client_type"], project_path, "pull", ignore_buildable=True)
+        invoke_task(env_info["client_type"], project_path, "pull", ignore_buildable=True, strict=True)
         # Build
-        invoke_task(env_info["client_type"], project_path, "build", no_cache=env_info["options"]["no_cache"])
+        invoke_task(env_info["client_type"], project_path, "build", no_cache=env_info["options"]["no_cache"], strict=True)
         # Initialize Odoo
-        invoke_task(env_info["client_type"], project_path, "db", "init")
+        invoke_task(env_info["client_type"], project_path, "db", "init", strict=True)
         yield project_path
+    except BaseException:
+        _dump_logs(env_info["client_type"], project_path)
+        raise
     finally:
         invoke_task(env_info["client_type"], project_path, "destroy-this-project", force=True)
 
@@ -177,11 +191,16 @@ def project_tmpl_dev(env_info, tmp_path_factory):
         # Use Dev Mode
         switch_project_mode(env_info["client_type"], project_path, "dev")
         # Pull Images
-        invoke_task(env_info["client_type"], project_path, "pull", ignore_buildable=True)
+        invoke_task(env_info["client_type"], project_path, "pull", ignore_buildable=True, strict=True)
         # Build
-        invoke_task(env_info["client_type"], project_path, "build", no_cache=env_info["options"]["no_cache"])
+        invoke_task(env_info["client_type"], project_path, "build", mode="dev", no_cache=env_info["options"]["no_cache"], strict=True)
+        # The ./addons/git bind mount hides the Odoo source baked in the image: populate it
+        invoke_task(env_info["client_type"], project_path, "git-aggregate", strict=True)
         # Initialize Odoo
-        invoke_task(env_info["client_type"], project_path, "db", "init")
+        invoke_task(env_info["client_type"], project_path, "db", "init", strict=True)
         yield project_path
+    except BaseException:
+        _dump_logs(env_info["client_type"], project_path)
+        raise
     finally:
         invoke_task(env_info["client_type"], project_path, "destroy-this-project", force=True)

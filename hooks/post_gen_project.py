@@ -12,14 +12,13 @@ project_root = Path.cwd()
 odoo_version = "{{ cookiecutter.odoo_version }}"
 
 ### Move recipes
-recipes_dir = source_dir = project_root / "recipes"
+recipes_dir = project_root / "recipes"
 if odoo_version not in NO_PRECOMMIT_ODOO_VERSIONS:
-    source_dir = recipes_dir / odoo_version
-    shutil.copytree(source_dir, project_root, dirs_exist_ok=True)
+    shutil.copytree(recipes_dir / odoo_version, project_root, dirs_exist_ok=True)
 shutil.rmtree(recipes_dir)
 
 ### Clean project folder
-if odoo_version not in NO_PRECOMMIT_ODOO_VERSIONS:
+if odoo_version in NO_PRECOMMIT_ODOO_VERSIONS:
     precommit_files_to_remove = [
         ".pre-commit-config.yaml",
         "eslint.config.cjs",

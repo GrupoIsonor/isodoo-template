@@ -3,8 +3,6 @@
     "project_slug": "{{ cookiecutter.project_name | lower | replace(' ', '_') }}",
     "project_owner": "Grupo Isonor",
     "project_owner_url": "https://www.grupoisonor.es",
-    "project_license": ["AGPL-3", "GPL-2", "GPL-2 or any later version", "GPL-3", "GPL-3 or any later version", "LGPL-3", "Proprietary"],
-    "project_repository": "{{ 'https://www.gitlab.com/' ~ cookiecutter.project_owner | replace(' ', '') ~ cookiecutter.project_slug }}",
     "odoo_version": "19.0",
     "odoo_db_name": "odoodb",
     "odoo_db_user": "odoo",

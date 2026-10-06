@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # Copyright Grupo Isonor - Alexandre D. <dev@redneboa.es>
-import sys
 import shutil
 import subprocess
 

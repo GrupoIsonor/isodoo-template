@@ -5,8 +5,6 @@ import requests
 import pytest
 import subprocess
 import json
-import os
-from pathlib import Path
 from conftest import EXTRA_ADDONS, invoke_task, wait_for_odoo
 
 

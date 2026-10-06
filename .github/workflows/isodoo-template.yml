@@ -9,6 +9,13 @@ on:
     - cron: '0 8 * * 0'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   pre-commit:
     runs-on: ubuntu-24.04
@@ -33,13 +40,10 @@ jobs:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ runner.os }}-${{ hashFiles('uv.lock') }}-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: |
-            pre-commit-${{ runner.os }}-${{ hashFiles('uv.lock') }}-${{ hashFiles('.pre-commit-config.yaml') }}
             pre-commit-${{ runner.os }}-${{ hashFiles('uv.lock') }}
             pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
             pre-commit-${{ runner.os }}
 
-      - name: Install the project
-        run: uv sync --locked --all-extras --dev
       - uses: pre-commit/action@v3.0.1
 
   pytest:
@@ -48,6 +52,7 @@ jobs:
         odoo_version: ["19.0"]
       fail-fast: false
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     needs: pre-commit
     env:
       DEBIAN_FRONTEND: noninteractive
@@ -70,14 +75,26 @@ jobs:
           path: ~/.cache/uv
           key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
           restore-keys: |
-            uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
             uv-${{ runner.os }}
 
       - name: Install the project
-        run: uv sync --locked --all-extras --dev
+        run: uv sync --locked
+
+      # Dev containers remap the odoo user to UID/GID; bash does not export them.
+      - name: Export runner UID/GID
+        run: |
+          echo "UID=$(id -u)" >> "$GITHUB_ENV"
+          echo "GID=$(id -g)" >> "$GITHUB_ENV"
 
       - name: Run pytest
         run: uv run pytest --odoo-version ${{ matrix.odoo_version }} --client-type docker --no-cache -v
 
+      - name: Dump container state on failure
+        if: failure()
+        run: |
+          docker ps -a
+          for c in $(docker ps -aq); do echo "::group::logs $c"; docker logs --tail 200 "$c" 2>&1; echo "::endgroup::"; done
+
       - name: Minimize uv cache
+        if: always()
         run: uv cache prune --ci

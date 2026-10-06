@@ -3,8 +3,11 @@
 
 import time
 import socket
+import importlib.util
+import shutil
 import pytest
-import os
+from pathlib import Path
+from cookiecutter.main import cookiecutter
 from conftest import invoke_task, switch_project_mode, wait_for_odoo
 
 
@@ -19,6 +22,23 @@ def test_project_structure(project_tmpl_ci, project_tmpl_dev):
     assert not (project_tmpl_dev / "macros").exists()
     assert not (project_tmpl_dev / "recipes").exists()
     assert not (project_tmpl_dev / "_helpers.jinja").exists()
+
+
+@pytest.mark.parametrize(("odoo_version", "has_precommit"), [("10.0", False), ("19.0", True)])
+def test_precommit_files_match_odoo_support(tmp_path, odoo_version, has_precommit):
+    project_path = Path(cookiecutter(
+        template=".",
+        output_dir=str(tmp_path),
+        no_input=True,
+        extra_context={
+            "project_name": f"Pre-commit Odoo {odoo_version}",
+            "project_slug": f"pre-commit-odoo-{odoo_version.replace('.', '-')}",
+            "odoo_version": odoo_version,
+        },
+    ))
+    assert (project_path / ".pre-commit-config.yaml").is_file() == has_precommit
+    assert (project_path / ".pylintrc").is_file() == has_precommit
+
 
 def test_debugpy(project_tmpl_dev, env_info):
     try:

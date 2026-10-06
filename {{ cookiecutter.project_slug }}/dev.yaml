@@ -27,11 +27,7 @@ services:
     volumes:
       - db:{{ cookiecutter.__postgres_pgdata }}
     healthcheck:
-{%- if cookiecutter.odoo_version|float < 19 %}
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_ODOO_USER -d $$POSTGRES_ODOO_DB"]
-{%- else %}
       test: ["CMD-SHELL", "pg_isready"]
-{%- endif %}
       interval: 10s
       timeout: 5s
       retries: 5
@@ -89,7 +85,7 @@ services:
       OCONF__options__admin_passwd: "{{ cookiecutter.odoo_admin_passwd }}"
     volumes:
       - filestore:/var/lib/odoo/data
-      - gitaggregator:/opt/odoo/git
+      - ./addons/git:/opt/odoo/git:Z
     develop:
       watch:
         - action: sync
@@ -158,9 +154,3 @@ networks:
 volumes:
   filestore:
   db:
-  gitaggregator:
-    driver: local
-    driver_opts:
-      type: none
-      device: ./addons/git
-      o: bind

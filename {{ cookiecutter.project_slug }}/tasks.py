@@ -26,10 +26,8 @@ DEFAULT_CONTAINER_ENGINE = _get_preferred_client_type()
 def _run_container_cmd(
     c,
     command: str,
-    check: bool = False,
     stdin: str = None,
     pty: bool = False,
-    disown: bool = False,
     hide: bool = False,
     compose: bool = False,
     env: dict = None,
@@ -41,9 +39,8 @@ def _run_container_cmd(
         final_cmd,
         in_stream=StringIO(stdin) if stdin else None,
         pty=pty,
-        warn=not check,
+        warn=not c.config.get("isodoo_strict", False),
         hide=hide,
-        disown=disown,
         env=env,
     )
     # Clean unwanted podman/docker warnings
@@ -55,10 +52,8 @@ def _run_container_cmd(
     return "".join(clean_lines)
 
 
-def _run_compose_service(c, service: str, command: str, volumes: list[str] | None = None, env: dict[str, str] | None = None, tty: bool = False, no_entrypoint: bool = False, **kwargs):
+def _run_compose_service(c, service: str, command: str, volumes: list[str] | None = None, env: dict[str, str] | None = None, no_entrypoint: bool = False, **kwargs):
     cmd = ["run", "--rm"]
-    if tty:
-        cmd.append("-it")
     if no_entrypoint:
         cmd += ['--entrypoint', '/bin/sh']
     if volumes and isinstance(volumes, list):
@@ -75,10 +70,10 @@ def _run_compose_service(c, service: str, command: str, volumes: list[str] | Non
 # CONTAINER TASKS
 #-----------------
 
-@task(optional=["detach", "build", "no_cache"], help={
+@task(optional=["detach", "build"], help={
     "services": "Comma-separated list of services",
 })
-def up(c, services: str = "", detach: bool = True, build: bool = False, no_cache: bool = False, force_recreate: bool = False):
+def up(c, services: str = "", detach: bool = True, build: bool = False, force_recreate: bool = False):
     # Symlink
     link = "compose.yaml"
     if not os.path.islink(link) and not os.path.exists(link):
@@ -89,8 +84,6 @@ def up(c, services: str = "", detach: bool = True, build: bool = False, no_cache
         cmd.append("-d")
     if build:
         cmd.append("--build")
-    if no_cache:
-        cmd.append("--no-cache")
     if force_recreate:
         cmd.append("--force-recreate")
     if services:
@@ -268,7 +261,7 @@ def db(c, action: str, database: str = "{{ cookiecutter.odoo_db_name }}"):
 def scaffold(c, name: str):
     _run_compose_service(
         c, "odoo",
-        f"odoo scaffold {module} /tmp/addons",
+        f"odoo scaffold {name} /tmp/addons",
         volumes=["./addons/private:/tmp/addons"]
     )
 
