@@ -8,7 +8,7 @@
 <p align="center">
 *** PROJECT UNDER DEVELOPMENT. NOT READY FOR PRODUCTION ***
 
-[Cookiecutter](https://www.cookiecutter.io/) template for <a href="https://github.com/GrupoIsonor/isodoo">isOdoo</a>
+[Cookiecutter](https://github.com/cookiecutter/cookiecutter) template for <a href="https://github.com/GrupoIsonor/isodoo">isOdoo</a>
 </p>
 <p align="center">
 -- <a href="https://www.grupoisonor.es/">Grupo Isonor</a> --

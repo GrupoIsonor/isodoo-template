@@ -91,7 +91,6 @@ services:
         - action: sync
           path: ./addons/private
           target: /var/lib/odoo/private
-          initial_sync: true
           ignore:
             - "**/__pycache__"
             - "**/*.pyc"
@@ -103,11 +102,9 @@ services:
         - action: sync
           path: ./addons/addons.yaml
           target: /opt/odoo/addons.yaml
-          initial_sync: true
         - action: sync
           path: ./addons/repos.yaml
           target: /opt/odoo/repos.yaml
-          initial_sync: true
         - action: rebuild
           path: ./deps
     healthcheck:
